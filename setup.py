@@ -21,6 +21,15 @@ ext = Extension("pairdist",
 
 setup(cmdclass={'build_ext':build_ext},
       name="pairdist",
+      author='Kevin Gori',
+      author_email='kgori@ebi.ac.uk',
+      description='Pairwise distances by maximum likelihood',
+      url='https://github.com/kgori/pairdist.git',
       version="0.0.1",
-      ext_modules = [ext]
+      scripts=['bin/pairdist'],
+      ext_modules = [ext],
+      install_requires=[
+        'autowrap',
+        'cython',
+      ],
      )
