@@ -1,2 +1,4 @@
 include README.md
+include Distance.pxd
 include bin/pairdist
+recursive-include src *.h
