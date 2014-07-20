@@ -5,8 +5,8 @@ import pkg_resources
 
 data_dir = pkg_resources.resource_filename("autowrap", "data_files")
 
-ext = Extension("pairdists",
-                sources = ['pairdists.pyx',
+ext = Extension("pairdist",
+                sources = ['pairdist.pyx',
                            'src/Distance.cpp',
                            'src/ModelFactory.cpp',
                            'src/SiteContainerBuilder.cpp'],
@@ -17,7 +17,7 @@ ext = Extension("pairdists",
                )
 
 setup(cmdclass={'build_ext':build_ext},
-      name="pairdists",
+      name="pairdist",
       version="0.0.1",
       ext_modules = [ext]
      )
