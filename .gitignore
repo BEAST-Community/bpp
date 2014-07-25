@@ -46,6 +46,9 @@ coverage.xml
 # Rope
 .ropeproject
 
+# PyCharm
+.idea/
+
 # Django stuff:
 *.log
 *.pot

@@ -25,7 +25,7 @@ using namespace std;
 
 Distance::Distance(string filename, string file_format, string datatype, string model_name, bool interleaved) {
     _check_compatible_model(datatype, model_name);
-	read_alignment(filename, file_format, datatype, interleaved);
+    read_alignment(filename, file_format, datatype, interleaved);
     set_model(model_name);
     set_alpha();
     _clear_distances();
@@ -68,43 +68,43 @@ void Distance::set_alpha(int ncat, double alpha) {
 
 void Distance::set_rates(vector<double> rates, string order) {
     if (is_dna()) {
-		if (order == "acgt" || order == "ACGT") {
-			double normaliser = rates[1];
-			model->setParameterValue("a", rates[4] / normaliser);
-			model->setParameterValue("b", rates[2] / normaliser);
-			model->setParameterValue("c", rates[5] / normaliser);
-			model->setParameterValue("d", rates[0] / normaliser);
-			model->setParameterValue("e", rates[3] / normaliser);
-		}
-		else if (order == "tcag" || order == "TCAG") {
-			model->setParameterValue("a", rates[0]);
-			model->setParameterValue("b", rates[1]);
-			model->setParameterValue("c", rates[2]);
-			model->setParameterValue("d", rates[3]);
-			model->setParameterValue("e", rates[4]);
-		}
-		else {
-			throw Exception("Unrecognised order for rates: " + order);
-		}
-		_clear_distances();
+        if (order == "acgt" || order == "ACGT") {
+            double normaliser = rates[1];
+            model->setParameterValue("a", rates[4] / normaliser);
+            model->setParameterValue("b", rates[2] / normaliser);
+            model->setParameterValue("c", rates[5] / normaliser);
+            model->setParameterValue("d", rates[0] / normaliser);
+            model->setParameterValue("e", rates[3] / normaliser);
+        }
+        else if (order == "tcag" || order == "TCAG") {
+            model->setParameterValue("a", rates[0]);
+            model->setParameterValue("b", rates[1]);
+            model->setParameterValue("c", rates[2]);
+            model->setParameterValue("d", rates[3]);
+            model->setParameterValue("e", rates[4]);
+        }
+        else {
+            throw Exception("Unrecognised order for rates: " + order);
+        }
+        _clear_distances();
     }
 }
 
 void Distance::_clear_distances() {
-	if (_distances) {
-		distances.reset();
-		_distances = false;
-	}
+    if (_distances) {
+        distances.reset();
+        _distances = false;
+    }
 }
 
 void Distance::set_frequencies(vector<double> freqs) {
-	size_t reqd = is_dna() ? 4 : 20;
-	if (freqs.size() != reqd) {
-		throw Exception("Frequencies vector is the wrong length (dna: 4; aa: 20)");
-	}
+    size_t reqd = is_dna() ? 4 : 20;
+    if (freqs.size() != reqd) {
+        throw Exception("Frequencies vector is the wrong length (dna: 4; aa: 20)");
+    }
     map<int, double> m = _vector_to_map(freqs);
     model->setFreq(m);
-	_clear_distances();
+    _clear_distances();
 }
 
 void Distance::compute_distances() {
@@ -178,25 +178,59 @@ void Distance::_set_protein() {
     protein = true;
 }
 
-//double Distance::get_alpha() {
-//}
-//
-//vector<double> Distance::get_rates() {
-//}
-//
-//vector<double> Distance::get_frequencies() {
-//}
+double Distance::get_alpha() {
+    if (rates) {
+        return rates->getParameterValue("alpha");
+    }
+    return -1;
+}
+
+vector<double> Distance::get_rates(string order) {
+    if (is_dna()) {
+        vector<double> rates_vec;
+        if (order == "acgt" || order == "ACGT") { //{a-c, a-g, a-t, c-g, c-t, g-t=1}
+            double normaliser = model->getParameterValue("c");
+            rates_vec.push_back(model->getParameterValue("d") / normaliser);
+            rates_vec.push_back(1.0 / normaliser);
+            rates_vec.push_back(model->getParameterValue("b") / normaliser);
+            rates_vec.push_back(model->getParameterValue("e") / normaliser);
+            rates_vec.push_back(model->getParameterValue("a") / normaliser);
+            rates_vec.push_back(1.0);
+        }
+        else if (order == "tcag" || order == "TCAG") { //{a=t-c, b=t-a, c=t-g, d=c-a, e=c-g, f=a-g=1}
+            rates_vec.push_back(model->getParameterValue("a"));
+            rates_vec.push_back(model->getParameterValue("b"));
+            rates_vec.push_back(model->getParameterValue("c"));
+            rates_vec.push_back(model->getParameterValue("d"));
+            rates_vec.push_back(model->getParameterValue("e"));
+            rates_vec.push_back(1.0);
+        }
+        else {
+            cerr << "Unknown order: " << order << ". Accepted orders are {tcag, acgt}" << endl;
+            throw exception();
+        }
+        return rates_vec;
+    }
+    else {
+        cerr << "Getting and setting rates is not implemented for protein models" << endl;
+        throw exception();
+    }
+}
+
+vector<double> Distance::get_frequencies() {
+    return model->getFrequencies();
+}
 
 void Distance::_check_compatible_model(string datatype, string model) {
-	bool incompat = false;
-	if (datatype == "dna" and (model == "JTT92" || model == "JCprot" || model == "DSO78" || model == "WAG01" || model == "LG08")) {
-		incompat = true;
-	}
-	else if (datatype == "aa" and (model == "JCnuc" || model == "JC69" || model == "K80" || model == "HKY85" || model == "TN93"  || model == "GTR" || model == "T92" || model == "F84")) {
-		incompat = true;
-	}
-	if (incompat) {
-		cerr << "Incompatible model (" << model << ") and datatype (" << datatype << ")" << endl;
-		throw exception();
-	}
+    bool incompat = false;
+    if (datatype == "dna" and (model == "JTT92" || model == "JCprot" || model == "DSO78" || model == "WAG01" || model == "LG08")) {
+        incompat = true;
+    }
+    else if (datatype == "aa" and (model == "JCnuc" || model == "JC69" || model == "K80" || model == "HKY85" || model == "TN93"  || model == "GTR" || model == "T92" || model == "F84")) {
+        incompat = true;
+    }
+    if (incompat) {
+        cerr << "Incompatible model (" << model << ") and datatype (" << datatype << ")" << endl;
+        throw exception();
+    }
 }

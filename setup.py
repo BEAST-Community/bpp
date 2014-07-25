@@ -10,6 +10,7 @@ data_dir = pkg_resources.resource_filename("autowrap", "data_files")
 
 ext = Extension("pairdist",
                 sources = ['pairdist.pyx',
+                           'src/Simulator.cpp',
                            'src/Distance.cpp',
                            'src/ModelFactory.cpp',
                            'src/SiteContainerBuilder.cpp'],

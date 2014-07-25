@@ -10,31 +10,31 @@
 #include <string>
 
 map<string, Model> ModelMap{
-	{"JCnuc", Model::JCnuc},
-	{"JC69", Model::JCnuc},
-	{"K80", Model::K80},
-	{"HKY85", Model::HKY85},
-	{"TN93", Model::TN93},
-	{"GTR", Model::GTR},
-	{"T92", Model::T92},
-	{"F84", Model::F84},
-	{"JTT92", Model::JTT92},
-	{"JTT92+F", Model::JTT92},
-	{"JCprot", Model::JCprot},
-	{"DSO78",  Model::DSO78},
-	{"DSO78+F",  Model::DSO78},
-	{"WAG01", Model::WAG01},
-	{"WAG01+F", Model::WAG01},
-	{"LG08", Model::LG08},
-	{"LG08+F", Model::LG08},
+    {"JCnuc", Model::JCnuc},
+    {"JC69", Model::JCnuc},
+    {"K80", Model::K80},
+    {"HKY85", Model::HKY85},
+    {"TN93", Model::TN93},
+    {"GTR", Model::GTR},
+    {"T92", Model::T92},
+    {"F84", Model::F84},
+    {"JTT92", Model::JTT92},
+    {"JTT92+F", Model::JTT92},
+    {"JCprot", Model::JCprot},
+    {"DSO78",  Model::DSO78},
+    {"DSO78+F",  Model::DSO78},
+    {"WAG01", Model::WAG01},
+    {"WAG01+F", Model::WAG01},
+    {"LG08", Model::LG08},
+    {"LG08+F", Model::LG08},
 };
 
 Model string_to_model(string name) throw (Exception) {
-	if ( ModelMap.find(name) == ModelMap.end() ) {
-	  throw Exception("ModelFactory::string_to_model() - unknown model \"" + name + "\"");
-	} else {
-	  return ModelMap[name];
-	}
+    if ( ModelMap.find(name) == ModelMap.end() ) {
+      throw Exception("ModelFactory::string_to_model() - unknown model \"" + name + "\"");
+    } else {
+      return ModelMap[name];
+    }
 }
 
 ModelFactory::ModelFactory() {}
@@ -42,16 +42,16 @@ ModelFactory::ModelFactory() {}
 ModelFactory::~ModelFactory() {}
 
 shared_ptr<SubstitutionModel> ModelFactory::create(string model_name) throw (Exception) {
-	try {
-		Model model = string_to_model(model_name);
-		return this->create(model);
-	}
-	catch (exception &e){
-		cout << e.what()
-		     << " ---> using JCnuc model due to error finding model \"" << model_name << "\"" << endl;
-		Model model = Model::JCnuc;
-		return this->create(model);
-	}
+    try {
+        Model model = string_to_model(model_name);
+        return this->create(model);
+    }
+    catch (exception &e){
+        cout << e.what()
+             << " ---> using JCnuc model due to error finding model \"" << model_name << "\"" << endl;
+        Model model = Model::JCnuc;
+        return this->create(model);
+    }
 }
 
 shared_ptr<SubstitutionModel> ModelFactory::create(Model model) throw (Exception) {

@@ -29,9 +29,9 @@ class Distance {
         void set_alpha(int ncat=4, double alpha=1.0);
         void set_rates(vector<double>, string order="acgt");
         void set_frequencies(vector<double>);
-//        double get_alpha();
-//        vector<double> get_rates();
-//        vector<double> get_frequencies();
+        double get_alpha();
+        vector<double> get_rates(string order);
+        vector<double> get_frequencies();
         vector<vector<double>> get_distances();
         vector<string> get_names();
         void compute_distances();
@@ -44,7 +44,7 @@ class Distance {
         map<int, double> _vector_to_map(vector<double>);
         void _check_distances_exist();
         void _check_compatible_model(string datatype, string model);
-	void _clear_distances();
+        void _clear_distances();
 
         shared_ptr<VectorSiteContainer> sequences;
         shared_ptr<SubstitutionModel> model;

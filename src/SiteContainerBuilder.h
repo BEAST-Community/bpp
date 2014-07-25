@@ -16,18 +16,18 @@ using namespace std;
 
 class SiteContainerBuilder {
 public:
-	SiteContainerBuilder();
-	virtual ~SiteContainerBuilder();
-	static shared_ptr<VectorSiteContainer> read_alignment(string filename, string file_format, string datatype, bool interleaved=true) throw (invalid_argument);
+    SiteContainerBuilder();
+    virtual ~SiteContainerBuilder();
+    static shared_ptr<VectorSiteContainer> read_alignment(string filename, string file_format, string datatype, bool interleaved=true) throw (invalid_argument);
 private:
-	static bool asking_for_fasta(string file_format);
-	static bool asking_for_phylip(string file_format);
-	static bool asking_for_dna(string datatype);
-	static bool asking_for_protein(string datatype);
-	static shared_ptr<VectorSiteContainer> read_fasta_dna_file(string filename);
-	static shared_ptr<VectorSiteContainer> read_fasta_protein_file(string filename);
-	static shared_ptr<VectorSiteContainer> read_phylip_dna_file(string filename, bool interleaved);
-	static shared_ptr<VectorSiteContainer> read_phylip_protein_file(string filename, bool interleaved);
+    static bool asking_for_fasta(string file_format);
+    static bool asking_for_phylip(string file_format);
+    static bool asking_for_dna(string datatype);
+    static bool asking_for_protein(string datatype);
+    static shared_ptr<VectorSiteContainer> read_fasta_dna_file(string filename);
+    static shared_ptr<VectorSiteContainer> read_fasta_protein_file(string filename);
+    static shared_ptr<VectorSiteContainer> read_phylip_dna_file(string filename, bool interleaved);
+    static shared_ptr<VectorSiteContainer> read_phylip_protein_file(string filename, bool interleaved);
 };
 
 #endif /* SITECONTAINERBUILDER_H_ */

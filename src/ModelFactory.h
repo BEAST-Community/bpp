@@ -34,18 +34,18 @@ using namespace std;
 
 
 enum class Model {
-	JCnuc,
-	K80,
-	HKY85,
-	TN93,
-	GTR,
-	T92,
-	F84,
-	JTT92,
-	JCprot,
-	DSO78,
-	WAG01,
-	LG08,
+    JCnuc,
+    K80,
+    HKY85,
+    TN93,
+    GTR,
+    T92,
+    F84,
+    JTT92,
+    JCprot,
+    DSO78,
+    WAG01,
+    LG08,
 };
 
 Model string_to_model(string name) throw (Exception);
@@ -53,10 +53,10 @@ Model string_to_model(string name) throw (Exception);
 class ModelFactory {
 
 public:
-	ModelFactory();
-	virtual ~ModelFactory();
-	shared_ptr<SubstitutionModel> create(string model_name) throw (Exception);
-	shared_ptr<SubstitutionModel> create(Model model) throw (Exception);
+    ModelFactory();
+    virtual ~ModelFactory();
+    shared_ptr<SubstitutionModel> create(string model_name) throw (Exception);
+    shared_ptr<SubstitutionModel> create(Model model) throw (Exception);
 };
 
 #endif /* MODELFACTORY_H_ */

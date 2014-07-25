@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from pairdist import Distance
+from pairdist import Simulator
 import argparse
 import numpy as np
 import sys
@@ -8,11 +8,9 @@ np.set_printoptions(precision=8)
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--sequences', type=str, required=True)
     parser.add_argument('-f', '--format', type=str, required=True)
     parser.add_argument('-d', '--datatype', type=str, required=True)
     parser.add_argument('-m', '--model', type=str, required=True)
-    parser.add_argument('-i', '--interleaved', action='store_true')
     parser.add_argument('-a', '--alpha', type=float)
     parser.add_argument('--frequencies', nargs='+', type=float)
     parser.add_argument('--rates', nargs='+', type=float)
@@ -20,12 +18,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    d = Distance(args.sequences, args.format, args.datatype, args.model,
-                 args.interleaved)
-    distances = np.array(d.get_distances())
-    names = d.get_names()
-    print distances
-    print ' '.join(names)
+    s = Simulator(args.datatype, args.model)
     return 0
 
 if __name__ == '__main__':
