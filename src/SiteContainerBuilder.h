@@ -9,7 +9,7 @@
 #define SITECONTAINERBUILDER_H_
 
 #include <memory>
-#include <stdexcept>
+#include <Bpp/Exceptions.h>
 #include <Bpp/Seq/Container.all>
 using namespace bpp;
 using namespace std;
@@ -18,7 +18,7 @@ class SiteContainerBuilder {
 public:
     SiteContainerBuilder();
     virtual ~SiteContainerBuilder();
-    static shared_ptr<VectorSiteContainer> read_alignment(string filename, string file_format, string datatype, bool interleaved=true) throw (invalid_argument);
+    static shared_ptr<VectorSiteContainer> read_alignment(string filename, string file_format, string datatype, bool interleaved=true) throw (Exception);
 private:
     static bool asking_for_fasta(string file_format);
     static bool asking_for_phylip(string file_format);

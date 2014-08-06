@@ -6,6 +6,7 @@
  */
 
 #include "SiteContainerBuilder.h"
+#include <Bpp/Exceptions.h>
 #include <Bpp/Seq/Alphabet/AlphabetTools.h>
 #include <Bpp/Seq/Io/Fasta.h>
 #include <Bpp/Seq/Io/Phylip.h>
@@ -13,7 +14,7 @@
 
 shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_alignment(string filename,
         string file_format, string datatype, bool interleaved)
-                throw (invalid_argument) {
+                throw (Exception) {
     if (asking_for_fasta(file_format)) {
         if (asking_for_dna(datatype)) {
             return read_fasta_dna_file(filename);
@@ -22,7 +23,7 @@ shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_alignment(string file
             return read_fasta_protein_file(filename);
         }
         else {
-            throw invalid_argument(datatype);
+            throw Exception(datatype);
         }
     }
 
@@ -35,11 +36,11 @@ shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_alignment(string file
             return read_phylip_protein_file(filename, interleaved);
         }
         else {
-            throw invalid_argument(datatype);
+            throw Exception(datatype);
         }
     }
     else {
-        throw invalid_argument(file_format);
+        throw Exception(file_format);
     }
 }
 

@@ -1,32 +1,44 @@
 #!/usr/bin/env python
+from __future__ import print_function
 from pairdist import Distance
 import argparse
-import numpy as np
 import sys
 
+import numpy as np
+
+
 np.set_printoptions(precision=8)
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--sequences', type=str, required=True)
-    parser.add_argument('-f', '--format', type=str, required=True)
-    parser.add_argument('-d', '--datatype', type=str, required=True)
+    parser.add_argument('-f', '--format', type=str, required=True, choices=['fas', 'fasta', 'phy', 'phylip'])
+    parser.add_argument('-d', '--datatype', type=str, required=True, choices=['aa', 'dna'])
     parser.add_argument('-m', '--model', type=str, required=True)
     parser.add_argument('-i', '--interleaved', action='store_true')
     parser.add_argument('-a', '--alpha', type=float)
     parser.add_argument('--frequencies', nargs='+', type=float)
-    parser.add_argument('--rates', nargs='+', type=float)
+    parser.add_argument('--rates', nargs='+', type=float, help="DNA GTR rates, in ACGT order. Ignored for protein models")
     return parser.parse_args()
+
 
 def main():
     args = parse_args()
     d = Distance(args.sequences, args.format, args.datatype, args.model,
                  args.interleaved)
+    if args.frequencies:
+        d.set_frequencies(args.frequencies)
+    if args.alpha:
+        d.set_alpha(4, alpha)
+    if args.rates and args.datatype == 'dna':
+        d.set_rates(args.rates, "acgt")
     distances = np.array(d.get_distances())
     names = d.get_names()
-    print distances
-    print ' '.join(names)
+    print(distances)
+    print(' '.join(names))
     return 0
+
 
 if __name__ == '__main__':
     sys.exit(main())

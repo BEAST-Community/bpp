@@ -1,25 +1,42 @@
 #!/usr/bin/env python
+from __future__ import print_function
 from pairdist import Simulator
 import argparse
-import numpy as np
 import sys
 
-np.set_printoptions(precision=8)
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--format', type=str, required=True)
+    parser.add_argument('-f', '--format', type=str, default='phy')
     parser.add_argument('-d', '--datatype', type=str, required=True)
     parser.add_argument('-m', '--model', type=str, required=True)
-    parser.add_argument('-a', '--alpha', type=float)
+    parser.add_argument('-a', '--alpha', type=float, default=1)
     parser.add_argument('--frequencies', nargs='+', type=float)
-    parser.add_argument('--rates', nargs='+', type=float)
+    parser.add_argument('--rates', nargs='+', type=float, help="DNA GTR rates, in ACGT order. Ignored for protein models")
+    parser.add_argument('-o', '--outfile', type=str)
+    parser.add_argument('-t', '--tree', type=str, required=True)
+    parser.add_argument('-n', '--nsites', type=int, default=1000)
     return parser.parse_args()
+
 
 def main():
     args = parse_args()
-    s = Simulator(args.datatype, args.model)
+    s = Simulator(args.model)
+    if args.frequencies:
+        s.set_frequencies(args.frequencies)
+    if args.alpha:
+        s.set_alpha(4, args.alpha)
+    if args.rates and s.is_dna():
+        s.set_rates(args.rates, "acgt")
+    s.set_simulator(args.tree)
+    s.simulate(args.nsites)
+    if args.outfile:
+        s.write_alignment(args.outfile, args.format, True)
+    else:
+        for name, seq in s.get_sequences():
+            print('{}    {}\n'.format(name, seq))
     return 0
+
 
 if __name__ == '__main__':
     sys.exit(main())

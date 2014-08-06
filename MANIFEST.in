@@ -1,4 +1,4 @@
 include README.md
 include pairdist_h.pxd
-include bin/pairdist
-recursive-include src *.h
+recursive-include bin/*
+recursive-include src/*.h
