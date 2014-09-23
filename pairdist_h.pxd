@@ -19,6 +19,9 @@ cdef extern from "src/Distance.h":
         void initialise_likelihood(libcpp_string tree) except +
         void optimise_parameters(bool fix_branch_lengths) except +
         libcpp_string get_tree() except +
+        libcpp_vector[double] get_rates(libcpp_string order) except +
+        libcpp_vector[double] get_frequencies() except +
+        double get_alpha() except + 
 
 
 cdef extern from "src/Simulator.h":

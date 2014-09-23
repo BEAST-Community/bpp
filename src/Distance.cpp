@@ -40,7 +40,6 @@ void Distance::read_alignment(string filename, string file_format, string dataty
     }
     else if (type == "Proteic alphabet") {
         _set_protein();
-        _rates = true;
     }
     else {
         cout << "Type = " << type << endl;
@@ -52,7 +51,6 @@ void Distance::read_alignment(string filename, string file_format, string dataty
 void Distance::set_model(string model_name) {
     unique_ptr<ModelFactory> factory(new ModelFactory());
     model = factory->create(model_name);
-    _model = true;
     _clear_distances();
     _clear_likelihood();
 }
@@ -92,24 +90,20 @@ void Distance::set_rates(vector<double> rates, string order) {
         else {
             throw Exception("Unrecognised order for rates: " + order);
         }
-        _rates = true;
         _clear_distances();
         _clear_likelihood();
     }
-    else _rates = true;
 }
 
 void Distance::_clear_distances() {
-    if (_distances) {
+    if (distances) {
         distances.reset();
-        _distances = false;
     }
 }
 
 void Distance::_clear_likelihood() {
-    if (_likelihood) {
+    if (likelihood) {
         likelihood.reset();
-        _likelihood = false;
     }
 }
 
@@ -153,11 +147,10 @@ void Distance::compute_distances() {
         }
     }
     delete sites_;
-    _distances = true;
 }
 
 void Distance::_check_distances_exist() {
-    if (!_distances) {
+    if (!distances) {
         compute_distances();
     }
 }
@@ -257,7 +250,7 @@ double Distance::get_likelihood() {
         cerr << "Likelihood calculator not set - call initialise_likelihood" << endl;
         throw exception();
     }
-    return likelihood->getLikelihood();
+    return likelihood->getLogLikelihood();
 }
 
 bool Distance::_is_file(string filename) {
@@ -276,31 +269,30 @@ bool Distance::_is_tree_string(string tree_string) {
 }
 
 void Distance::initialise_likelihood(string tree) {
-    if (!_model) {
+    if (!model) {
         cerr << "Model not set" << endl;
         throw exception();
     }
-    if (!_rates) {
+    if (!rates) {
         cerr << "Rates not set" << endl;
         throw exception();
     }
     Tree * liktree;
-    Newick * reader = new Newick(false);
+    auto reader = make_shared<Newick>(false);
     if (_is_file(tree)) {
         liktree = reader->read(tree);
-        delete reader;
     }
     else if (_is_tree_string(tree)) {
         stringstream ss{tree};
         liktree = reader->read(ss);
-        delete reader;
     }
     else {
         cerr << "Couldn\'t understand this tree: " << tree << endl;
-        delete reader;
         throw exception();
     }
-    this->likelihood = make_shared<RHomogeneousTreeLikelihood>(*liktree, *sequences, model.get(), rates.get(), true, false, true);
+    VectorSiteContainer* sites_ = sequences->clone();
+    SiteContainerTools::changeGapsToUnknownCharacters(*sites_);
+    likelihood = make_shared<RHomogeneousTreeLikelihood>(*liktree, *sites_, model.get(), rates.get(), true, false, true);
     likelihood->initialize();
     delete liktree;
 }
@@ -326,7 +318,7 @@ string Distance::get_tree() {
         cerr << "Likelihood calculator not set - call initialise_likelihood" << endl;
         throw exception();
     }
-    const Tree *tree = &likelihood->getTree();
+    auto *tree = likelihood->getTree().clone();
     stringstream ss;
     Newick treeWriter;
     treeWriter.write(*tree, ss);

@@ -43,7 +43,7 @@ class Distance {
         bool is_protein();
         string get_tree();
 
-    private :
+    // private :
         void _set_dna();
         void _set_protein();
         map<int, double> _vector_to_map(vector<double>);
@@ -61,10 +61,6 @@ class Distance {
         shared_ptr<RHomogeneousTreeLikelihood> likelihood = nullptr;
         bool dna{false};
         bool protein{false};
-        bool _model = false;
-        bool _rates = false;
-        bool _distances{false};
-        bool _likelihood{false};
 };
 
 #endif /* DISTANCE_H_ */

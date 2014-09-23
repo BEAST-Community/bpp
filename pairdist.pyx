@@ -22,6 +22,13 @@ cdef class Distance:
          self.inst.reset()
 
     
+    def get_rates(self, bytes order ):
+        assert isinstance(order, bytes), 'arg order wrong type'
+    
+        _r = self.inst.get().get_rates((<libcpp_string>order))
+        cdef list py_result = _r
+        return py_result
+    
     def __init__(self, bytes filename , bytes file_format , bytes datatype , bytes model_name ,  interleaved ):
         assert isinstance(filename, bytes), 'arg filename wrong type'
         assert isinstance(file_format, bytes), 'arg file_format wrong type'
@@ -38,6 +45,11 @@ cdef class Distance:
     def get_tree(self):
         cdef libcpp_string _r = self.inst.get().get_tree()
         py_result = <libcpp_string>_r
+        return py_result
+    
+    def get_alpha(self):
+        cdef double _r = self.inst.get().get_alpha()
+        py_result = <double>_r
         return py_result
     
     def set_rates(self, list in_0 , bytes order ):
@@ -58,6 +70,11 @@ cdef class Distance:
         cdef libcpp_vector[double] v0 = in_0
         self.inst.get().set_frequencies(v0)
         
+    
+    def get_frequencies(self):
+        _r = self.inst.get().get_frequencies()
+        cdef list py_result = _r
+        return py_result
     
     def is_protein(self):
         cdef bool _r = self.inst.get().is_protein()
