@@ -15,6 +15,10 @@ cdef extern from "src/Distance.h":
         void compute_distances() except +
         bool is_dna() except +
         bool is_protein() except +
+        double get_likelihood() except +
+        void initialise_likelihood(libcpp_string tree) except +
+        void optimise_parameters(bool fix_branch_lengths) except +
+        libcpp_string get_tree() except +
 
 
 cdef extern from "src/Simulator.h":

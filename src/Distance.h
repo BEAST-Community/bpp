@@ -41,6 +41,7 @@ class Distance {
         void compute_distances();
         bool is_dna();
         bool is_protein();
+        string get_tree();
 
     private :
         void _set_dna();
@@ -49,6 +50,7 @@ class Distance {
         void _check_distances_exist();
         void _check_compatible_model(string datatype, string model);
         void _clear_distances();
+        void _clear_likelihood();
         bool _is_file(string filename);
         bool _is_tree_string(string tree_string);
 

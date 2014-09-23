@@ -35,6 +35,11 @@ cdef class Distance:
     
         self.inst = shared_ptr[_Distance](new _Distance((<libcpp_string>filename), (<libcpp_string>file_format), (<libcpp_string>datatype), (<libcpp_string>model_name), (<bool>interleaved)))
     
+    def get_tree(self):
+        cdef libcpp_string _r = self.inst.get().get_tree()
+        py_result = <libcpp_string>_r
+        return py_result
+    
     def set_rates(self, list in_0 , bytes order ):
         assert isinstance(in_0, list) and all(isinstance(elemt_rec, float) for elemt_rec in in_0), 'arg in_0 wrong type'
         assert isinstance(order, bytes), 'arg order wrong type'
@@ -90,10 +95,25 @@ cdef class Distance:
         cdef list py_result = _r
         return py_result
     
+    def get_likelihood(self):
+        cdef double _r = self.inst.get().get_likelihood()
+        py_result = <double>_r
+        return py_result
+    
+    def initialise_likelihood(self, bytes tree ):
+        assert isinstance(tree, bytes), 'arg tree wrong type'
+    
+        self.inst.get().initialise_likelihood((<libcpp_string>tree))
+    
     def get_names(self):
         _r = self.inst.get().get_names()
         cdef list py_result = _r
-        return py_result 
+        return py_result
+    
+    def optimise_parameters(self,  fix_branch_lengths ):
+        assert isinstance(fix_branch_lengths, (int, long)), 'arg fix_branch_lengths wrong type'
+    
+        self.inst.get().optimise_parameters((<bool>fix_branch_lengths)) 
 
 cdef class Simulator:
 

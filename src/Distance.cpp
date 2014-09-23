@@ -10,11 +10,12 @@
 #include "ModelFactory.h"
 
 #include "Bpp/Numeric/Prob/GammaDiscreteDistribution.h"
-#include "Bpp/Phyl/Distance/DistanceEstimation.h"
-#include <Bpp/Seq/Container/VectorSiteContainer.h>
 #include <Bpp/Seq/Container/SiteContainerTools.h>
-#include "Bpp/Phyl/OptimizationTools.h"
+#include <Bpp/Seq/Container/VectorSiteContainer.h>
 #include "Bpp/Seq/SymbolListTools.h"
+#include "Bpp/Phyl/Distance/DistanceEstimation.h"
+#include <Bpp/Phyl/Io/Newick.h>
+#include "Bpp/Phyl/OptimizationTools.h"
 
 #include <string>
 #include <sstream>
@@ -252,6 +253,10 @@ void Distance::_check_compatible_model(string datatype, string model) {
 }
 
 double Distance::get_likelihood() {
+    if (!likelihood) {
+        cerr << "Likelihood calculator not set - call initialise_likelihood" << endl;
+        throw exception();
+    }
     return likelihood->getLikelihood();
 }
 
@@ -295,12 +300,13 @@ void Distance::initialise_likelihood(string tree) {
         delete reader;
         throw exception();
     }
-    simulator = make_shared<RHomogeneousTreeLikelihood>(*liktree, *sites, model.get(), rates.get(), true, false, true);
+    this->likelihood = make_shared<RHomogeneousTreeLikelihood>(*liktree, *sequences, model.get(), rates.get(), true, false, true);
+    likelihood->initialize();
     delete liktree;
 }
 
 void Distance::optimise_parameters(bool fix_branch_lengths) {
-    if (!_likelihood) {
+    if (!likelihood) {
         cerr << "Likelihood calculator not set - call initialise_likelihood" << endl;
         throw exception();
     }
@@ -312,5 +318,18 @@ void Distance::optimise_parameters(bool fix_branch_lengths) {
     else {
         pl = likelihood->getParameters();
     }
-    OptimizationTools::optimizeNumericalParameters2(likelihood, pl, 0, 0.0001, 1000000, NULL, NULL, false, false, 0);
+    OptimizationTools::optimizeNumericalParameters2(likelihood.get(), pl, 0, 0.0001, 1000000, NULL, NULL, false, false, 0);
+}
+
+string Distance::get_tree() {
+    if (!likelihood) {
+        cerr << "Likelihood calculator not set - call initialise_likelihood" << endl;
+        throw exception();
+    }
+    const Tree *tree = &likelihood->getTree();
+    stringstream ss;
+    Newick treeWriter;
+    treeWriter.write(*tree, ss);
+    delete tree;
+    return ss.str();
 }
