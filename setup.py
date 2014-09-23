@@ -17,7 +17,7 @@ ext = Extension("pairdist",
                 language="c++",
                 include_dirs = [data_dir],
                 libraries=['bpp-core', 'bpp-seq', 'bpp-phyl'],
-                extra_compile_args=['-std=c++11'],
+                extra_compile_args=['-std=c++11', '-stdlib=libc++'],
                )
 
 setup(cmdclass={'build_ext':build_ext},

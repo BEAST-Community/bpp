@@ -12,6 +12,7 @@
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
 #include <Bpp/Seq/DistanceMatrix.h>
+#include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
 
 #include <iostream>
 #include <map>
@@ -34,6 +35,9 @@ class Distance {
         vector<double> get_frequencies();
         vector<vector<double>> get_distances();
         vector<string> get_names();
+        void initialise_likelihood(string tree);
+        void optimise_parameters(bool fix_branch_lengths);
+        double get_likelihood();
         void compute_distances();
         bool is_dna();
         bool is_protein();
@@ -45,14 +49,20 @@ class Distance {
         void _check_distances_exist();
         void _check_compatible_model(string datatype, string model);
         void _clear_distances();
+        bool _is_file(string filename);
+        bool _is_tree_string(string tree_string);
 
-        shared_ptr<VectorSiteContainer> sequences;
-        shared_ptr<SubstitutionModel> model;
-        shared_ptr<GammaDiscreteDistribution> rates;
-        shared_ptr<DistanceMatrix> distances;
+        shared_ptr<VectorSiteContainer> sequences = nullptr;
+        shared_ptr<SubstitutionModel> model = nullptr;
+        shared_ptr<GammaDiscreteDistribution> rates = nullptr;
+        shared_ptr<DistanceMatrix> distances = nullptr;
+        shared_ptr<RHomogeneousTreeLikelihood> likelihood = nullptr;
         bool dna{false};
         bool protein{false};
+        bool _model = false;
+        bool _rates = false;
         bool _distances{false};
+        bool _likelihood{false};
 };
 
 #endif /* DISTANCE_H_ */

@@ -17,6 +17,7 @@
 #include "Bpp/Seq/SymbolListTools.h"
 
 #include <string>
+#include <sstream>
 #include <vector>
 #include <map>
 
@@ -28,7 +29,6 @@ Distance::Distance(string filename, string file_format, string datatype, string 
     read_alignment(filename, file_format, datatype, interleaved);
     set_model(model_name);
     set_alpha();
-    _clear_distances();
 }
 
 void Distance::read_alignment(string filename, string file_format, string datatype, bool interleaved) {
@@ -39,17 +39,21 @@ void Distance::read_alignment(string filename, string file_format, string dataty
     }
     else if (type == "Proteic alphabet") {
         _set_protein();
+        _rates = true;
     }
     else {
         cout << "Type = " << type << endl;
     }
     _clear_distances();
+    _clear_likelihood();
 }
 
 void Distance::set_model(string model_name) {
     unique_ptr<ModelFactory> factory(new ModelFactory());
     model = factory->create(model_name);
+    _model = true;
     _clear_distances();
+    _clear_likelihood();
 }
 
 bool Distance::is_dna() {
@@ -64,6 +68,7 @@ void Distance::set_alpha(int ncat, double alpha) {
     rates = make_shared<GammaDiscreteDistribution>(ncat, alpha, alpha);
     rates->aliasParameters("alpha", "beta");
     _clear_distances();
+    _clear_likelihood();
 }
 
 void Distance::set_rates(vector<double> rates, string order) {
@@ -86,14 +91,24 @@ void Distance::set_rates(vector<double> rates, string order) {
         else {
             throw Exception("Unrecognised order for rates: " + order);
         }
+        _rates = true;
         _clear_distances();
+        _clear_likelihood();
     }
+    else _rates = true;
 }
 
 void Distance::_clear_distances() {
     if (_distances) {
         distances.reset();
         _distances = false;
+    }
+}
+
+void Distance::_clear_likelihood() {
+    if (_likelihood) {
+        likelihood.reset();
+        _likelihood = false;
     }
 }
 
@@ -105,6 +120,7 @@ void Distance::set_frequencies(vector<double> freqs) {
     map<int, double> m = _vector_to_map(freqs);
     model->setFreq(m);
     _clear_distances();
+    _clear_likelihood();
 }
 
 void Distance::compute_distances() {
@@ -233,4 +249,68 @@ void Distance::_check_compatible_model(string datatype, string model) {
         cerr << "Incompatible model (" << model << ") and datatype (" << datatype << ")" << endl;
         throw exception();
     }
+}
+
+double Distance::get_likelihood() {
+    return likelihood->getLikelihood();
+}
+
+bool Distance::_is_file(string filename) {
+    ifstream fl(filename.c_str());
+    bool result = true;
+    if (!fl) {
+        result = false;
+    }
+    fl.close();
+    return result;
+}
+
+bool Distance::_is_tree_string(string tree_string) {
+    size_t l = tree_string.length();
+    return (tree_string[0]=='(' && tree_string[l-1]==';');
+}
+
+void Distance::initialise_likelihood(string tree) {
+    if (!_model) {
+        cerr << "Model not set" << endl;
+        throw exception();
+    }
+    if (!_rates) {
+        cerr << "Rates not set" << endl;
+        throw exception();
+    }
+    Tree * liktree;
+    Newick * reader = new Newick(false);
+    if (_is_file(tree)) {
+        liktree = reader->read(tree);
+        delete reader;
+    }
+    else if (_is_tree_string(tree)) {
+        stringstream ss{tree};
+        liktree = reader->read(ss);
+        delete reader;
+    }
+    else {
+        cerr << "Couldn\'t understand this tree: " << tree << endl;
+        delete reader;
+        throw exception();
+    }
+    simulator = make_shared<RHomogeneousTreeLikelihood>(*liktree, *sites, model.get(), rates.get(), true, false, true);
+    delete liktree;
+}
+
+void Distance::optimise_parameters(bool fix_branch_lengths) {
+    if (!_likelihood) {
+        cerr << "Likelihood calculator not set - call initialise_likelihood" << endl;
+        throw exception();
+    }
+    ParameterList pl;
+    if (fix_branch_lengths) {
+        pl = likelihood->getSubstitutionModelParameters();
+        pl.addParameters(likelihood->getRateDistributionParameters());
+    }
+    else {
+        pl = likelihood->getParameters();
+    }
+    OptimizationTools::optimizeNumericalParameters2(likelihood, pl, 0, 0.0001, 1000000, NULL, NULL, false, false, 0);
 }
