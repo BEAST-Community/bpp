@@ -8,9 +8,33 @@
 #include "SiteContainerBuilder.h"
 #include <Bpp/Exceptions.h>
 #include <Bpp/Seq/Alphabet/AlphabetTools.h>
+#include <Bpp/Seq/Alphabet/LetterAlphabet.h>
 #include <Bpp/Seq/Io/Fasta.h>
 #include <Bpp/Seq/Io/Phylip.h>
+#include <Bpp/Seq/Sequence.h>
 #include <stdexcept>
+
+shared_ptr<VectorSiteContainer> SiteContainerBuilder::construct_alignment_from_strings(vector<pair<string, string> headers_sequences, 
+    string datatype) 
+        throw (Exception) {
+    vector<Sequence*> v;
+    if asking_for_dna(datatype) {
+        for (pair &h_s : headers_sequences) {
+            v.push_back(_convert_pair_to_dna_sequence(h_s).get());
+        }
+    }
+    else if asking_for_protein(datatype) {
+        for (pair &h_s : headers_sequences) {
+            v.push_back(_convert_pair_to_protein_sequence(h_s).get());
+        }
+    }
+    else {
+        throw Exception(datatype);
+    }
+    auto tmp_seq_container = make_shared<VectorSequenceContainer>(v);
+    auto site_container = make_shared<VectorSiteContainer>(*tmp_seq_container);
+    return site_container;
+}
 
 shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_alignment(string filename,
         string file_format, string datatype, bool interleaved)
@@ -95,4 +119,11 @@ shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_phylip_protein_file(
     shared_ptr<VectorSiteContainer> sequences(new VectorSiteContainer(*alignment));
     delete alignment;
     return sequences;
+}
+
+shared_ptr<BasicSequence> SiteContainerBuilder::_convert_pair_to_dna_sequence(pair<string, string>) {
+    return make_shared<BasicSequence>(pair.first, pair.second, &AlphabetTools::DNA_ALPHABET);
+}
+shared_ptr<BasicSequence> SiteContainerBuilder::_convert_pair_to_protein_sequence() {
+    return make_shared<BasicSequence>(pair.first, pair.second, &AlphabetTools::DNA_ALPHABET);
 }

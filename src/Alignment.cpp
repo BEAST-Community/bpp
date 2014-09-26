@@ -31,11 +31,14 @@ using namespace std;
 
 double VARMIN = 0.000001;
 
+Alignment::Alignment(vector<pair<string, string>>, string datatype) {
+    read_alignment(filename, file_format, datatype, interleaved);
+}
+
 Alignment::Alignment(string filename, string file_format, string datatype, string model_name, bool interleaved) {
     _check_compatible_model(datatype, model_name);
     read_alignment(filename, file_format, datatype, interleaved);
     set_model(model_name);
-    set_alpha();
 }
 
 void Alignment::read_alignment(string filename, string file_format, string datatype, bool interleaved) {
@@ -55,6 +58,8 @@ void Alignment::read_alignment(string filename, string file_format, string datat
 }
 
 void Alignment::set_model(string model_name) {
+    string dataype = is_protein() ? "protein" : "dna";
+    _check_compatible_model(datatype, model_name);
     unique_ptr<ModelFactory> factory(new ModelFactory());
     model = factory->create(model_name);
     _model = model_name;
@@ -75,7 +80,7 @@ bool Alignment::is_protein() {
     return protein && !dna;
 }
 
-void Alignment::set_alpha(int ncat, double alpha) {
+void Alignmt ncat, double alpha) {
     rates = make_shared<GammaDiscreteDistribution>(ncat, alpha, alpha);
     rates->aliasParameters("alpha", "beta");
     _clear_distances();
@@ -357,7 +362,7 @@ void Alignment::_check_compatible_model(string datatype, string model) {
     if (datatype == "dna" and (model == "JTT92" || model == "JCprot" || model == "DSO78" || model == "WAG01" || model == "LG08")) {
         incompat = true;
     }
-    else if (datatype == "aa" and (model == "JCnuc" || model == "JC69" || model == "K80" || model == "HKY85" || model == "TN93"  || model == "GTR" || model == "T92" || model == "F84")) {
+    else if ((datatype == "aa" | datatype == "protein") and (model == "JCnuc" || model == "JC69" || model == "K80" || model == "HKY85" || model == "TN93"  || model == "GTR" || model == "T92" || model == "F84")) {
         incompat = true;
     }
     if (incompat) {

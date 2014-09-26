@@ -25,6 +25,8 @@ using namespace bpp;
 
 class Alignment {
     public :
+        Alignment(vector<pair<string, string>>, string datatype);
+        Alignment(string filename, string file_format, string datatype, bool interleaved=true);
         Alignment(string filename, string file_format, string datatype, string model_name, bool interleaved=true);
         void read_alignment(string filename, string file_format, string datatype, bool interleaved=true);
         void set_model(string model_name);
