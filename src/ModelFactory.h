@@ -25,6 +25,7 @@
 #include <Bpp/Phyl/Model/Protein/DSO78.h>
 #include <Bpp/Phyl/Model/Protein/WAG01.h>
 #include <Bpp/Phyl/Model/Protein/LG08.h>
+#include <Bpp/Phyl/Model/FrequenciesSet/ProteinFrequenciesSet.h>
 #include <memory>
 #include <map>
 #include <string>
@@ -55,8 +56,8 @@ class ModelFactory {
 public:
     ModelFactory();
     virtual ~ModelFactory();
-    shared_ptr<SubstitutionModel> create(string model_name) throw (Exception);
-    shared_ptr<SubstitutionModel> create(Model model) throw (Exception);
+    static shared_ptr<SubstitutionModel> create(string model_name) throw (Exception);
+    static shared_ptr<SubstitutionModel> create(Model model, bool parameterise_freqs) throw (Exception);
 };
 
 #endif /* MODELFACTORY_H_ */

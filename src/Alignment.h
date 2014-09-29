@@ -30,17 +30,19 @@ class Alignment {
         Alignment(string filename, string file_format, string datatype, string model_name, bool interleaved=true);
         void read_alignment(string filename, string file_format, string datatype, bool interleaved=true);
         void set_model(string model_name);
-        void set_alpha(int ncat=4, double alpha=1.0);
+        void set_alpha(double alpha);
+        void set_gamma(int ncat=4, double alpha=1.0);
         void set_rates(vector<double>, string order="acgt");
         void set_frequencies(vector<double>);
         double get_alpha();
         vector<double> get_rates(string order);
         vector<double> get_frequencies();
         vector<string> get_names();
+        string get_model();
+        vector<vector<double>> get_exchangeabilities();
         bool is_dna();
         bool is_protein();
-        string get_model();
-        
+
         // Distance
         void compute_distances();
         void fast_compute_distances();
@@ -50,7 +52,7 @@ class Alignment {
         vector<vector<double>> get_distances();
         vector<vector<double>> get_variances();
         vector<vector<double>> get_distance_variance_matrix();
-        
+
         // Likelihood
         void initialise_likelihood(string tree);
         void optimise_parameters(bool fix_branch_lengths);
@@ -64,13 +66,13 @@ class Alignment {
         vector<pair<string, string>> simulate(unsigned int nsites);
         vector<pair<string, string>> get_simulated_sequences();
 
-    private :
+    // private :
         void _set_dna();
         void _set_protein();
-        void _write_phylip(string filename, bool interleaved);
+        void _set_datatype();
         void _write_fasta(string filename);
+        void _write_phylip(string filename, bool interleaved);
         map<int, double> _vector_to_map(vector<double>);
-        void _check_distances_exist();
         void _check_compatible_model(string datatype, string model);
         void _clear_distances();
         void _clear_likelihood();

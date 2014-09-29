@@ -29,6 +29,15 @@ map<string, Model> ModelMap{
     {"LG08+F", Model::LG08},
 };
 
+bool hasEnding (std::string const &fullString, std::string const &ending)
+{
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
+
 Model string_to_model(string name) throw (Exception) {
     if ( ModelMap.find(name) == ModelMap.end() ) {
       throw Exception("ModelFactory::string_to_model() - unknown model \"" + name + "\"");
@@ -44,17 +53,18 @@ ModelFactory::~ModelFactory() {}
 shared_ptr<SubstitutionModel> ModelFactory::create(string model_name) throw (Exception) {
     try {
         Model model = string_to_model(model_name);
-        return this->create(model);
+        bool pf = hasEnding(model_name, "+F");
+        return create(model, pf);
     }
     catch (exception &e){
         cout << e.what()
              << " ---> using JCnuc model due to error finding model \"" << model_name << "\"" << endl;
         Model model = Model::JCnuc;
-        return this->create(model);
+        return create(model);
     }
 }
 
-shared_ptr<SubstitutionModel> ModelFactory::create(Model model) throw (Exception) {
+shared_ptr<SubstitutionModel> ModelFactory::create(Model model, bool parameterise_freqs) throw (Exception) {
     switch (model) {
     case Model::JCnuc:
         return make_shared<JCnuc>(&AlphabetTools::DNA_ALPHABET);
@@ -78,18 +88,39 @@ shared_ptr<SubstitutionModel> ModelFactory::create(Model model) throw (Exception
         return make_shared<F84>(&AlphabetTools::DNA_ALPHABET);
         break;
     case Model::JTT92:
+        if (parameterise_freqs) {
+            auto freqs_set = make_shared<ProteinFrequenciesSet>(&AlphabetTools::PROTEIN_ALPHABET);
+            return make_shared<JTT92>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set);
+        }
         return make_shared<JTT92>(&AlphabetTools::PROTEIN_ALPHABET);
         break;
     case Model::JCprot:
+        if (parameterise_freqs) {
+            auto freqs_set = make_shared<ProteinFrequenciesSet>(&AlphabetTools::PROTEIN_ALPHABET);
+            return make_shared<JCprot>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set);
+        }
         return make_shared<JCprot>(&AlphabetTools::PROTEIN_ALPHABET);
         break;
     case Model::DSO78:
+        if (parameterise_freqs) {
+            auto freqs_set = make_shared<ProteinFrequenciesSet>(&AlphabetTools::PROTEIN_ALPHABET);
+            return make_shared<DSO78>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set);
+        }
         return make_shared<DSO78>(&AlphabetTools::PROTEIN_ALPHABET);
         break;
     case Model::WAG01:
+        cout << "setting up wag" << endl;
+        if (parameterise_freqs) {
+            auto freqs_set = make_shared<ProteinFrequenciesSet>(&AlphabetTools::PROTEIN_ALPHABET);
+            return make_shared<WAG01>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set);
+        }
         return make_shared<WAG01>(&AlphabetTools::PROTEIN_ALPHABET);
         break;
     case Model::LG08:
+        if (parameterise_freqs) {
+            auto freqs_set = make_shared<ProteinFrequenciesSet>(&AlphabetTools::PROTEIN_ALPHABET);
+            return make_shared<LG08>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set);
+        }
         return make_shared<LG08>(&AlphabetTools::PROTEIN_ALPHABET);
         break;
     default:

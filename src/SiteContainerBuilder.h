@@ -34,6 +34,8 @@ private:
     static shared_ptr<VectorSiteContainer> read_phylip_protein_file(string filename, bool interleaved);
     static shared_ptr<BasicSequence> _convert_pair_to_dna_sequence(pair<string, string>);
     static shared_ptr<BasicSequence> _convert_pair_to_protein_sequence(pair<string, string>);
+    static shared_ptr<VectorSequenceContainer> _convert_vector_to_dna_sequence_container(vector<pair<string, string>> v);
+    static shared_ptr<VectorSequenceContainer> _convert_vector_to_protein_sequence_container(vector<pair<string, string>> v);
 };
 
 #endif /* SITECONTAINERBUILDER_H_ */

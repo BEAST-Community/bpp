@@ -14,26 +14,17 @@
 #include <Bpp/Seq/Sequence.h>
 #include <stdexcept>
 
-shared_ptr<VectorSiteContainer> SiteContainerBuilder::construct_alignment_from_strings(vector<pair<string, string> headers_sequences, 
-    string datatype) 
+shared_ptr<VectorSiteContainer> SiteContainerBuilder::construct_alignment_from_strings(vector<pair<string, string>> headers_sequences, string datatype)
         throw (Exception) {
-    vector<Sequence*> v;
-    if asking_for_dna(datatype) {
-        for (pair &h_s : headers_sequences) {
-            v.push_back(_convert_pair_to_dna_sequence(h_s).get());
-        }
+    if (asking_for_dna(datatype)) {
+        return make_shared<VectorSiteContainer>(*_convert_vector_to_dna_sequence_container(headers_sequences));
     }
-    else if asking_for_protein(datatype) {
-        for (pair &h_s : headers_sequences) {
-            v.push_back(_convert_pair_to_protein_sequence(h_s).get());
-        }
+    else if (asking_for_protein(datatype)) {
+        return make_shared<VectorSiteContainer>(*_convert_vector_to_protein_sequence_container(headers_sequences));
     }
     else {
         throw Exception(datatype);
     }
-    auto tmp_seq_container = make_shared<VectorSequenceContainer>(v);
-    auto site_container = make_shared<VectorSiteContainer>(*tmp_seq_container);
-    return site_container;
 }
 
 shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_alignment(string filename,
@@ -121,9 +112,28 @@ shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_phylip_protein_file(
     return sequences;
 }
 
-shared_ptr<BasicSequence> SiteContainerBuilder::_convert_pair_to_dna_sequence(pair<string, string>) {
-    return make_shared<BasicSequence>(pair.first, pair.second, &AlphabetTools::DNA_ALPHABET);
+shared_ptr<BasicSequence> SiteContainerBuilder::_convert_pair_to_dna_sequence(pair<string, string> h_s) {
+    return make_shared<BasicSequence>(h_s.first, h_s.second, &AlphabetTools::DNA_ALPHABET);
 }
-shared_ptr<BasicSequence> SiteContainerBuilder::_convert_pair_to_protein_sequence() {
-    return make_shared<BasicSequence>(pair.first, pair.second, &AlphabetTools::DNA_ALPHABET);
+
+shared_ptr<BasicSequence> SiteContainerBuilder::_convert_pair_to_protein_sequence(pair<string, string> h_s) {
+    return make_shared<BasicSequence>(h_s.first, h_s.second, &AlphabetTools::PROTEIN_ALPHABET);
 }
+
+shared_ptr<VectorSequenceContainer> SiteContainerBuilder::_convert_vector_to_dna_sequence_container(vector<pair<string, string>> v) {
+    auto container = make_shared<VectorSequenceContainer>(&AlphabetTools::DNA_ALPHABET);
+    for (auto item : v) {
+        container->addSequence(*_convert_pair_to_dna_sequence(item));
+    }
+    return container;
+}
+
+shared_ptr<VectorSequenceContainer> SiteContainerBuilder::_convert_vector_to_protein_sequence_container(vector<pair<string, string>> v) {
+    auto container = make_shared<VectorSequenceContainer>(&AlphabetTools::PROTEIN_ALPHABET);
+    for (auto item : v) {
+        container->addSequence(*_convert_pair_to_protein_sequence(item));
+    }
+    return container;
+}
+
+
