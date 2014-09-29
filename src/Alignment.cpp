@@ -18,6 +18,7 @@
 #include <Bpp/Phyl/Io/Newick.h>
 #include "Bpp/Phyl/OptimizationTools.h"
 #include <Bpp/Phyl/Simulation/HomogeneousSequenceSimulator.h>
+#include <Bpp/Phyl/Likelihood/NNIHomogeneousTreeLikelihood.h>
 #include <Bpp/Seq/Io/Fasta.h>
 #include <Bpp/Seq/Io/Phylip.h>
 
@@ -166,6 +167,14 @@ vector<double> Alignment::get_frequencies() {
 
 vector<string> Alignment::get_names() {
     return sequences->getSequencesNames();
+}
+
+size_t Alignment::get_number_of_sequences() {
+    return sequences->getNumberOfSequences();
+}
+
+size_t Alignment::get_alignment_length() {
+    return sequences->getNumberOfSites();
 }
 
 string Alignment::get_model() {
@@ -344,7 +353,7 @@ void Alignment::initialise_likelihood(string tree) {
     }
     VectorSiteContainer* sites_ = sequences->clone();
     SiteContainerTools::changeGapsToUnknownCharacters(*sites_);
-    likelihood = make_shared<RHomogeneousTreeLikelihood>(*liktree, *sites_, model.get(), rates.get(), true, false, true);
+    likelihood = make_shared<NNIHomogeneousTreeLikelihood>(*liktree, *sites_, model.get(), rates.get(), true, true);
     likelihood->initialize();
     delete liktree;
 }
@@ -362,7 +371,22 @@ void Alignment::optimise_parameters(bool fix_branch_lengths) {
     else {
         pl = likelihood->getParameters();
     }
-    OptimizationTools::optimizeNumericalParameters2(likelihood.get(), pl, 0, 0.0001, 1000000, NULL, NULL, false, false, 0);
+    OptimizationTools::optimizeNumericalParameters2(likelihood.get(), pl, 0, 0.001, 1000000, NULL, NULL, false, false, 10);
+}
+
+void Alignment::optimise_topology(bool fix_model_params) {
+    if (!likelihood) {
+        cerr << "Likelihood calculator not set - call initialise_likelihood" << endl;
+        throw Exception("Uninitialised likelihood error");
+    }
+    ParameterList pl;
+    if (fix_model_params) {
+        pl = likelihood->getBranchLengthsParameters();
+    }
+    else {
+        pl = likelihood->getParameters();
+    }
+    OptimizationTools::optimizeTreeNNI2(likelihood.get(), pl, true, 0.001, 0.1, 1000000, 1, NULL, NULL, false, 10);
 }
 
 double Alignment::get_likelihood() {
@@ -444,6 +468,24 @@ vector<pair<string, string>> Alignment::simulate(unsigned int nsites) {
     size_t nsites_{nsites};
     SiteContainer * tmp = simulator->simulate(nsites_);
     simulated_sequences = make_shared<VectorSiteContainer>(*tmp);
+    /* For future use: to mask gaps in a simulated alignment:
+
+    auto alphabet = sequences->getAlphabet();
+    int gapCode = alphabet->getGapCharacterCode();
+    size_t numseq = this->get_number_of_sequences();
+    for (unsigned int i = 0; i < numseq; i++) {
+        BasicSequence oldseq = sequences->getSequence(i);
+        BasicSequence newseq = sim_sites->getSequence(i);
+        for (unsigned int j = 0; j < number_of_sites; j++) {
+            if (alphabet->isGap(oldseq[j])) {
+                newseq.setElement(j, gapCode);
+            }
+        }
+        string name = newseq.getName();
+        sim_sites->setSequence(name, newseq, true);
+    }
+
+    */
     delete tmp;
     return get_simulated_sequences();
 }

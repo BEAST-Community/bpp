@@ -60,7 +60,7 @@ shared_ptr<SubstitutionModel> ModelFactory::create(string model_name) throw (Exc
         cout << e.what()
              << " ---> using JCnuc model due to error finding model \"" << model_name << "\"" << endl;
         Model model = Model::JCnuc;
-        return create(model);
+        return create(model, false);
     }
 }
 
@@ -89,37 +89,36 @@ shared_ptr<SubstitutionModel> ModelFactory::create(Model model, bool parameteris
         break;
     case Model::JTT92:
         if (parameterise_freqs) {
-            auto freqs_set = make_shared<ProteinFrequenciesSet>(&AlphabetTools::PROTEIN_ALPHABET);
-            return make_shared<JTT92>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set);
+            auto freqs_set = new FullProteinFrequenciesSet(&AlphabetTools::PROTEIN_ALPHABET);
+            return make_shared<JTT92>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set, true);
         }
         return make_shared<JTT92>(&AlphabetTools::PROTEIN_ALPHABET);
         break;
     case Model::JCprot:
         if (parameterise_freqs) {
-            auto freqs_set = make_shared<ProteinFrequenciesSet>(&AlphabetTools::PROTEIN_ALPHABET);
-            return make_shared<JCprot>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set);
+            auto freqs_set = new FullProteinFrequenciesSet(&AlphabetTools::PROTEIN_ALPHABET);
+            return make_shared<JCprot>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set, true);
         }
         return make_shared<JCprot>(&AlphabetTools::PROTEIN_ALPHABET);
         break;
     case Model::DSO78:
         if (parameterise_freqs) {
-            auto freqs_set = make_shared<ProteinFrequenciesSet>(&AlphabetTools::PROTEIN_ALPHABET);
-            return make_shared<DSO78>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set);
+            auto freqs_set = new FullProteinFrequenciesSet(&AlphabetTools::PROTEIN_ALPHABET);
+            return make_shared<DSO78>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set, true);
         }
         return make_shared<DSO78>(&AlphabetTools::PROTEIN_ALPHABET);
         break;
     case Model::WAG01:
-        cout << "setting up wag" << endl;
         if (parameterise_freqs) {
-            auto freqs_set = make_shared<ProteinFrequenciesSet>(&AlphabetTools::PROTEIN_ALPHABET);
-            return make_shared<WAG01>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set);
+            auto freqs_set = new FullProteinFrequenciesSet(&AlphabetTools::PROTEIN_ALPHABET);
+            return make_shared<WAG01>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set, true);
         }
         return make_shared<WAG01>(&AlphabetTools::PROTEIN_ALPHABET);
         break;
     case Model::LG08:
         if (parameterise_freqs) {
-            auto freqs_set = make_shared<ProteinFrequenciesSet>(&AlphabetTools::PROTEIN_ALPHABET);
-            return make_shared<LG08>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set);
+            auto freqs_set = new FullProteinFrequenciesSet(&AlphabetTools::PROTEIN_ALPHABET);
+            return make_shared<LG08>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set, true);
         }
         return make_shared<LG08>(&AlphabetTools::PROTEIN_ALPHABET);
         break;

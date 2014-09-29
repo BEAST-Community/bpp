@@ -19,6 +19,8 @@ cdef extern from "src/Alignment.h":
         libcpp_vector[libcpp_string] get_names() except +
         libcpp_vector[libcpp_vector[double]] get_exchangeabilities() except +
         libcpp_string get_model() except +
+        size_t get_number_of_sequences() except +
+        size_t get_alignment_length() except +
         bool is_dna() except +
         bool is_protein() except +
 
@@ -35,6 +37,7 @@ cdef extern from "src/Alignment.h":
         # Likelihood
         void initialise_likelihood(libcpp_string tree) except +
         void optimise_parameters(bool fix_branch_lengths) except +
+        void optimise_topology(bool fix_model_params) except +
         double get_likelihood() except +
         libcpp_string get_tree() except +
 

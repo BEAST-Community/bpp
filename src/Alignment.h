@@ -12,7 +12,7 @@
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 #include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
 #include <Bpp/Seq/DistanceMatrix.h>
-#include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
+#include <Bpp/Phyl/Likelihood/NNIHomogeneousTreeLikelihood.h>
 #include <Bpp/Phyl/Simulation/HomogeneousSequenceSimulator.h>
 
 #include <iostream>
@@ -38,6 +38,8 @@ class Alignment {
         vector<double> get_rates(string order);
         vector<double> get_frequencies();
         vector<string> get_names();
+        size_t get_number_of_sequences();
+        size_t get_alignment_length();
         string get_model();
         vector<vector<double>> get_exchangeabilities();
         bool is_dna();
@@ -56,6 +58,7 @@ class Alignment {
         // Likelihood
         void initialise_likelihood(string tree);
         void optimise_parameters(bool fix_branch_lengths);
+        void optimise_topology(bool fix_model_params);
         double get_likelihood();
         string get_tree();
 
@@ -87,7 +90,7 @@ class Alignment {
         shared_ptr<GammaDiscreteDistribution> rates = nullptr;
         shared_ptr<DistanceMatrix> distances = nullptr;
         shared_ptr<DistanceMatrix> variances = nullptr;
-        shared_ptr<RHomogeneousTreeLikelihood> likelihood = nullptr;
+        shared_ptr<NNIHomogeneousTreeLikelihood> likelihood = nullptr;
         shared_ptr<HomogeneousSequenceSimulator> simulator = nullptr;
         bool dna{false};
         bool protein{false};
