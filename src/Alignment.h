@@ -5,8 +5,8 @@
  *      Author: kgori
  */
 
-#ifndef DISTANCE_H_
-#define DISTANCE_H_
+#ifndef _ALIGNMENT_H_
+#define _ALIGNMENT_H_
 
 #include <Bpp/Seq/Container/VectorSiteContainer.h>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
@@ -35,6 +35,7 @@ class Alignment {
         void set_number_of_gamma_categories(size_t ncat);
         void set_rates(vector<double>, string order="acgt");
         void set_frequencies(vector<double>);
+        void set_namespace(string name);
         double get_alpha();
         size_t get_number_of_gamma_categories();
         vector<double> get_rates(string order);
@@ -44,6 +45,7 @@ class Alignment {
         size_t get_alignment_length();
         string get_model();
         vector<vector<double>> get_exchangeabilities();
+        string get_namespace();
         bool is_dna();
         bool is_protein();
 
@@ -51,8 +53,8 @@ class Alignment {
         void compute_distances();
         void fast_compute_distances();
         void set_distance_matrix(vector<vector<double>> matrix);
-        string get_nj_tree();
-        string get_nj_tree(vector<vector<double>> matrix);
+        string get_bionj_tree();
+        string get_bionj_tree(vector<vector<double>> matrix);
         vector<vector<double>> get_distances();
         vector<vector<double>> get_variances();
         vector<vector<double>> get_distance_variance_matrix();
@@ -71,7 +73,7 @@ class Alignment {
         vector<pair<string, string>> simulate(unsigned int nsites);
         vector<pair<string, string>> get_simulated_sequences();
 
-    // private :
+    private :
         void _set_dna();
         void _set_protein();
         void _set_datatype();
@@ -97,6 +99,7 @@ class Alignment {
         bool dna{false};
         bool protein{false};
         string _model;
+        string _name;
 };
 
-#endif /* DISTANCE_H_ */
+#endif /* _ALIGNMENT_H_ */

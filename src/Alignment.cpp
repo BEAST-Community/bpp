@@ -121,8 +121,16 @@ void Alignment::set_frequencies(vector<double> freqs) {
     _clear_likelihood();
 }
 
+void Alignment::set_namespace(string name) {
+    if ((!rates) | (!model)) throw Exception("Substitution and rate models need to be fully set before adding a namespace");
+    rates->setNamespace(name);
+    model->setNamespace(name);
+    _name = name;
+    _clear_likelihood();
+}
+
 double Alignment::get_alpha() {
-    if (rates) return rates->getParameterValue("alpha");
+    if (rates) return rates->getParameterValue(rates->getNamespace() + "alpha");
     else throw Exception("Rate model not set");
 }
 
@@ -135,20 +143,20 @@ vector<double> Alignment::get_rates(string order) {
     if (is_dna()) {
         vector<double> rates_vec;
         if (order == "acgt" || order == "ACGT") { //{a-c, a-g, a-t, c-g, c-t, g-t=1}
-            double normaliser = model->getParameterValue("c");
-            rates_vec.push_back(model->getParameterValue("d") / normaliser);
+            double normaliser = model->getParameterValue(model->getNamespace() + "c");
+            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "d") / normaliser);
             rates_vec.push_back(1.0 / normaliser);
-            rates_vec.push_back(model->getParameterValue("b") / normaliser);
-            rates_vec.push_back(model->getParameterValue("e") / normaliser);
-            rates_vec.push_back(model->getParameterValue("a") / normaliser);
+            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "b") / normaliser);
+            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "e") / normaliser);
+            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "a") / normaliser);
             rates_vec.push_back(1.0);
         }
         else if (order == "tcag" || order == "TCAG") { //{a=t-c, b=t-a, c=t-g, d=c-a, e=c-g, f=a-g=1}
-            rates_vec.push_back(model->getParameterValue("a"));
-            rates_vec.push_back(model->getParameterValue("b"));
-            rates_vec.push_back(model->getParameterValue("c"));
-            rates_vec.push_back(model->getParameterValue("d"));
-            rates_vec.push_back(model->getParameterValue("e"));
+            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "a"));
+            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "b"));
+            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "c"));
+            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "d"));
+            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "e"));
             rates_vec.push_back(1.0);
         }
         else {
@@ -179,11 +187,6 @@ size_t Alignment::get_alignment_length() {
     return sequences->getNumberOfSites();
 }
 
-string Alignment::get_model() {
-    if (_model.empty()) throw Exception("No model name is set");
-    return _model;
-}
-
 vector<vector<double>> Alignment::get_exchangeabilities() {
     if(!model) throw Exception("No model has been set.");
     RowMatrix<double> exch = model->getExchangeabilityMatrix();
@@ -197,6 +200,22 @@ vector<vector<double>> Alignment::get_exchangeabilities() {
     }
     return matrix;
 }
+
+string Alignment::get_model() {
+    if (_model.empty()) throw Exception("No model name is set");
+    return _model;
+}
+
+string Alignment::get_namespace() {
+    if (_name.empty()) throw Exception("No namespace is set");
+    return _name;
+}
+
+//void Alignment::_print_params() {
+//    ParameterList pl = rates->getParameters();
+//    pl.addParameters(model->getParameters());
+//    pl.printParameters(cout);
+//}
 
 bool Alignment::is_dna() {
     return dna && !protein;
@@ -269,7 +288,7 @@ void Alignment::set_distance_matrix(vector<vector<double>> matrix) {
     distances = _create_distance_matrix(matrix);
 }
 
-string Alignment::get_nj_tree() {
+string Alignment::get_bionj_tree() {
     if (!distances) throw Exception("No distances have been calculated yet");
     BioNJ bionj(*distances, false, true, false); // rooted=false, positiveLengths=true, verbose=false
     auto njtree = bionj.getTree();
@@ -282,7 +301,7 @@ string Alignment::get_nj_tree() {
     return s;
 }
 
-string Alignment::get_nj_tree(vector<vector<double>> matrix) {
+string Alignment::get_bionj_tree(vector<vector<double>> matrix) {
     auto dm = _create_distance_matrix(matrix);
     BioNJ bionj(*dm, false, true, false); // rooted=false, positiveLengths=true, verbose=false
     auto njtree = bionj.getTree();

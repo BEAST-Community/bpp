@@ -14,12 +14,14 @@ cdef extern from "src/Alignment.h":
         void set_number_of_gamma_categories(size_t ncat) except +
         void set_rates(libcpp_vector[double], libcpp_string order) except +
         void set_frequencies(libcpp_vector[double]) except +
+        void set_namespace(libcpp_string name) except +
         double get_alpha() except +
         size_t get_number_of_gamma_categories() except +
         libcpp_vector[double] get_rates(libcpp_string order) except +
         libcpp_vector[double] get_frequencies() except +
         libcpp_vector[libcpp_string] get_names() except +
         libcpp_vector[libcpp_vector[double]] get_exchangeabilities() except +
+        libcpp_string get_namespace() except +
         libcpp_string get_model() except +
         size_t get_number_of_sequences() except +
         size_t get_alignment_length() except +
@@ -30,8 +32,8 @@ cdef extern from "src/Alignment.h":
         void compute_distances() except +
         void fast_compute_distances() except +
         void set_distance_matrix(libcpp_vector[libcpp_vector[double]] matrix) except +
-        libcpp_string get_nj_tree() except +
-        libcpp_string get_nj_tree(libcpp_vector[libcpp_vector[double]] matrix) except +
+        libcpp_string get_bionj_tree() except +
+        libcpp_string get_bionj_tree(libcpp_vector[libcpp_vector[double]] matrix) except +
         libcpp_vector[libcpp_vector[double]] get_distances() except +
         libcpp_vector[libcpp_vector[double]] get_variances() except +
         libcpp_vector[libcpp_vector[double]] get_distance_variance_matrix() except +

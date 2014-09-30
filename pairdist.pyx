@@ -26,6 +26,45 @@ cdef class Alignment:
         cdef list py_result = _r
         return py_result
     
+    def set_namespace(self, bytes name ):
+        assert isinstance(name, bytes), 'arg name wrong type'
+    
+        self.inst.get().set_namespace((<libcpp_string>name))
+    
+    def get_namespace(self):
+        cdef libcpp_string _r = self.inst.get().get_namespace()
+        py_result = <libcpp_string>_r
+        return py_result
+    
+    def compute_distances(self):
+        self.inst.get().compute_distances()
+    
+    def get_rates(self, bytes order ):
+        assert isinstance(order, bytes), 'arg order wrong type'
+    
+        _r = self.inst.get().get_rates((<libcpp_string>order))
+        cdef list py_result = _r
+        return py_result
+    
+    def write_alignment(self, bytes filename , bytes file_format ,  interleaved ):
+        assert isinstance(filename, bytes), 'arg filename wrong type'
+        assert isinstance(file_format, bytes), 'arg file_format wrong type'
+        assert isinstance(interleaved, (int, long)), 'arg interleaved wrong type'
+    
+    
+    
+        self.inst.get().write_alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<bool>interleaved))
+    
+    def get_variances(self):
+        _r = self.inst.get().get_variances()
+        cdef list py_result = _r
+        return py_result
+    
+    def initialise_likelihood(self, bytes tree ):
+        assert isinstance(tree, bytes), 'arg tree wrong type'
+    
+        self.inst.get().initialise_likelihood((<libcpp_string>tree))
+    
     def _get_nj_tree_0(self):
         cdef libcpp_string _r = self.inst.get().get_nj_tree()
         py_result = <libcpp_string>_r
@@ -47,30 +86,6 @@ cdef class Alignment:
         else:
                raise Exception('can not handle type of %s' % (args,))
     
-    def compute_distances(self):
-        self.inst.get().compute_distances()
-    
-    def get_rates(self, bytes order ):
-        assert isinstance(order, bytes), 'arg order wrong type'
-    
-        _r = self.inst.get().get_rates((<libcpp_string>order))
-        cdef list py_result = _r
-        return py_result
-    
-    def write_alignment(self, bytes filename , bytes file_format ,  interleaved ):
-        assert isinstance(filename, bytes), 'arg filename wrong type'
-        assert isinstance(file_format, bytes), 'arg file_format wrong type'
-        assert isinstance(interleaved, (int, long)), 'arg interleaved wrong type'
-    
-    
-    
-        self.inst.get().write_alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<bool>interleaved))
-    
-    def initialise_likelihood(self, bytes tree ):
-        assert isinstance(tree, bytes), 'arg tree wrong type'
-    
-        self.inst.get().initialise_likelihood((<libcpp_string>tree))
-    
     def get_exchangeabilities(self):
         _r = self.inst.get().get_exchangeabilities()
         cdef list py_result = _r
@@ -89,7 +104,7 @@ cdef class Alignment:
         assert isinstance(alpha, float), 'arg alpha wrong type'
     
     
-        self.inst.get().set_gamma((<int>ncat), (<double>alpha))
+        self.inst.get().set_gamma((<size_t>ncat), (<double>alpha))
     
     def read_alignment(self, bytes filename , bytes file_format , bytes datatype ,  interleaved ):
         assert isinstance(filename, bytes), 'arg filename wrong type'
@@ -118,10 +133,13 @@ cdef class Alignment:
     
         self.inst.get().optimise_topology((<bool>fix_model_params))
     
-    def get_variances(self):
-        _r = self.inst.get().get_variances()
-        cdef list py_result = _r
+    def get_number_of_gamma_categories(self):
+        cdef size_t _r = self.inst.get().get_number_of_gamma_categories()
+        py_result = <size_t>_r
         return py_result
+    
+    def _print_params(self):
+        self.inst.get()._print_params()
     
     def set_distance_matrix(self, list matrix ):
         assert isinstance(matrix, list) and all(isinstance(elemt_rec, list) and all(isinstance(elemt_rec_rec, float) for elemt_rec_rec in elemt_rec) for elemt_rec in matrix), 'arg matrix wrong type'
@@ -147,6 +165,11 @@ cdef class Alignment:
     def is_dna(self):
         cdef bool _r = self.inst.get().is_dna()
         py_result = <bool>_r
+        return py_result
+    
+    def get_distances(self):
+        _r = self.inst.get().get_distances()
+        cdef list py_result = _r
         return py_result
     
     def get_tree(self):
@@ -183,11 +206,6 @@ cdef class Alignment:
         else:
                raise Exception('can not handle type of %s' % (args,))
     
-    def get_number_of_sequences(self):
-        cdef size_t _r = self.inst.get().get_number_of_sequences()
-        py_result = <size_t>_r
-        return py_result
-    
     def get_alpha(self):
         cdef double _r = self.inst.get().get_alpha()
         py_result = <double>_r
@@ -197,6 +215,11 @@ cdef class Alignment:
         assert isinstance(fix_branch_lengths, (int, long)), 'arg fix_branch_lengths wrong type'
     
         self.inst.get().optimise_parameters((<bool>fix_branch_lengths))
+    
+    def set_number_of_gamma_categories(self,  ncat ):
+        assert isinstance(ncat, (int, long)), 'arg ncat wrong type'
+    
+        self.inst.get().set_number_of_gamma_categories((<size_t>ncat))
     
     def fast_compute_distances(self):
         self.inst.get().fast_compute_distances()
@@ -211,9 +234,9 @@ cdef class Alignment:
     
         self.inst.get().set_model((<libcpp_string>model_name))
     
-    def get_distances(self):
-        _r = self.inst.get().get_distances()
-        cdef list py_result = _r
+    def get_number_of_sequences(self):
+        cdef size_t _r = self.inst.get().get_number_of_sequences()
+        py_result = <size_t>_r
         return py_result
     
     def get_model(self):
