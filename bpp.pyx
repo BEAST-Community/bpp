@@ -9,7 +9,7 @@ from  AutowrapRefHolder cimport AutowrapRefHolder
 from  libcpp cimport bool
 from  libc.string cimport const_char
 from cython.operator cimport dereference as deref, preincrement as inc, address as address
-from pairdist_h cimport Alignment as _Alignment
+from bpp_h cimport Alignment as _Alignment
 cdef extern from "autowrap_tools.hpp":
     char * _cast_const_away(char *) 
 
@@ -107,10 +107,10 @@ cdef class Alignment:
         py_result = <double>_r
         return py_result
     
-    def get_number_of_informative_sites(self,  include_gaps ):
-        assert isinstance(include_gaps, (int, long)), 'arg include_gaps wrong type'
+    def get_number_of_informative_sites(self,  exclude_gaps ):
+        assert isinstance(exclude_gaps, (int, long)), 'arg exclude_gaps wrong type'
     
-        cdef size_t _r = self.inst.get().get_number_of_informative_sites((<bool>include_gaps))
+        cdef size_t _r = self.inst.get().get_number_of_informative_sites((<bool>exclude_gaps))
         py_result = <size_t>_r
         return py_result
     

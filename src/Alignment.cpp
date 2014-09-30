@@ -228,7 +228,7 @@ string Alignment::get_namespace() {
 
 size_t Alignment::get_number_of_informative_sites(bool exclude_gaps) {
   ConstSiteIterator* si = nullptr;
-  if (include_gaps) si = new CompleteSiteContainerIterator(*sequences);
+  if (exclude_gaps) si = new CompleteSiteContainerIterator(*sequences);
   else si = new SimpleSiteContainerIterator(*sequences);
   size_t S = 0;
   const Site* site = 0;
