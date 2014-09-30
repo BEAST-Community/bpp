@@ -70,19 +70,24 @@ void Alignment::set_model(string model_name) {
     _check_compatible_model(datatype, model_name);
     model = ModelFactory::create(model_name);
     _model = model_name;
-    _clear_distances();
+    _clear_likelihood();
+}
+
+void Alignment::set_gamma(size_t ncat, double alpha) {
+    rates = make_shared<GammaDiscreteDistribution>(ncat, alpha, alpha);
+    rates->aliasParameters("alpha", "beta");
     _clear_likelihood();
 }
 
 void Alignment::set_alpha(double alpha) {
     if(!rates) throw Exception("No rate model is set");
     rates->setParameterValue("alpha", alpha);
+    _clear_likelihood();
 }
 
-void Alignment::set_gamma(int ncat, double alpha) {
-    rates = make_shared<GammaDiscreteDistribution>(ncat, alpha, alpha);
-    rates->aliasParameters("alpha", "beta");
-    _clear_distances();
+void Alignment::set_number_of_gamma_categories(size_t ncat) {
+    if (!rates) throw Exception("No rate model is set");
+    rates->setNumberOfCategories(ncat);
     _clear_likelihood();
 }
 
@@ -103,29 +108,26 @@ void Alignment::set_rates(vector<double> rates, string order) {
             model->setParameterValue("d", rates[3]);
             model->setParameterValue("e", rates[4]);
         }
-        else {
-            throw Exception("Unrecognised order for rates: " + order);
-        }
-        _clear_distances();
+        else throw Exception("Unrecognised order for rates: " + order);
         _clear_likelihood();
     }
 }
 
 void Alignment::set_frequencies(vector<double> freqs) {
     size_t reqd = is_dna() ? 4 : 20;
-    if (freqs.size() != reqd) {
-        throw Exception("Frequencies vector is the wrong length (dna: 4; aa: 20)");
-    }
+    if (freqs.size() != reqd) throw Exception("Frequencies vector is the wrong length (dna: 4; aa: 20)");
     map<int, double> m = _vector_to_map(freqs);
     model->setFreq(m);
-    _clear_distances();
     _clear_likelihood();
 }
 
 double Alignment::get_alpha() {
-    if (rates) {
-        return rates->getParameterValue("alpha");
-    }
+    if (rates) return rates->getParameterValue("alpha");
+    else throw Exception("Rate model not set");
+}
+
+size_t Alignment::get_number_of_gamma_categories() {
+    if (rates) return rates->getNumberOfCategories();
     else throw Exception("Rate model not set");
 }
 

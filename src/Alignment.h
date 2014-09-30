@@ -30,11 +30,13 @@ class Alignment {
         Alignment(string filename, string file_format, string datatype, string model_name, bool interleaved=true);
         void read_alignment(string filename, string file_format, string datatype, bool interleaved=true);
         void set_model(string model_name);
+        void set_gamma(size_t ncat=4, double alpha=1.0);
         void set_alpha(double alpha);
-        void set_gamma(int ncat=4, double alpha=1.0);
+        void set_number_of_gamma_categories(size_t ncat);
         void set_rates(vector<double>, string order="acgt");
         void set_frequencies(vector<double>);
         double get_alpha();
+        size_t get_number_of_gamma_categories();
         vector<double> get_rates(string order);
         vector<double> get_frequencies();
         vector<string> get_names();
