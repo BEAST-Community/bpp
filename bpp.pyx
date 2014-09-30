@@ -55,36 +55,10 @@ cdef class Alignment:
     
         self.inst.get().write_alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<bool>interleaved))
     
-    def get_variances(self):
-        _r = self.inst.get().get_variances()
-        cdef list py_result = _r
-        return py_result
-    
     def initialise_likelihood(self, bytes tree ):
         assert isinstance(tree, bytes), 'arg tree wrong type'
     
         self.inst.get().initialise_likelihood((<libcpp_string>tree))
-    
-    def _get_nj_tree_0(self):
-        cdef libcpp_string _r = self.inst.get().get_nj_tree()
-        py_result = <libcpp_string>_r
-        return py_result
-    
-    def _get_nj_tree_1(self, list matrix ):
-        assert isinstance(matrix, list) and all(isinstance(elemt_rec, list) and all(isinstance(elemt_rec_rec, float) for elemt_rec_rec in elemt_rec) for elemt_rec in matrix), 'arg matrix wrong type'
-        cdef libcpp_vector[libcpp_vector[double]] v0 = matrix
-        cdef libcpp_string _r = self.inst.get().get_nj_tree(v0)
-        
-        py_result = <libcpp_string>_r
-        return py_result
-    
-    def get_nj_tree(self, *args):
-        if not args:
-            return self._get_nj_tree_0(*args)
-        elif (len(args)==1) and (isinstance(args[0], list) and all(isinstance(elemt_rec, list) and all(isinstance(elemt_rec_rec, float) for elemt_rec_rec in elemt_rec) for elemt_rec in args[0])):
-            return self._get_nj_tree_1(*args)
-        else:
-               raise Exception('can not handle type of %s' % (args,))
     
     def get_exchangeabilities(self):
         _r = self.inst.get().get_exchangeabilities()
@@ -98,6 +72,11 @@ cdef class Alignment:
     
         self.inst.get().set_rates(v0, (<libcpp_string>order))
         
+    
+    def get_number_of_sites(self):
+        cdef size_t _r = self.inst.get().get_number_of_sites()
+        py_result = <size_t>_r
+        return py_result
     
     def set_gamma(self,  ncat , double alpha ):
         assert isinstance(ncat, (int, long)), 'arg ncat wrong type'
@@ -128,6 +107,13 @@ cdef class Alignment:
         py_result = <double>_r
         return py_result
     
+    def get_number_of_informative_sites(self,  include_gaps ):
+        assert isinstance(include_gaps, (int, long)), 'arg include_gaps wrong type'
+    
+        cdef size_t _r = self.inst.get().get_number_of_informative_sites((<bool>include_gaps))
+        py_result = <size_t>_r
+        return py_result
+    
     def optimise_topology(self,  fix_model_params ):
         assert isinstance(fix_model_params, (int, long)), 'arg fix_model_params wrong type'
     
@@ -138,8 +124,10 @@ cdef class Alignment:
         py_result = <size_t>_r
         return py_result
     
-    def _print_params(self):
-        self.inst.get()._print_params()
+    def get_variances(self):
+        _r = self.inst.get().get_variances()
+        cdef list py_result = _r
+        return py_result
     
     def set_distance_matrix(self, list matrix ):
         assert isinstance(matrix, list) and all(isinstance(elemt_rec, list) and all(isinstance(elemt_rec_rec, float) for elemt_rec_rec in elemt_rec) for elemt_rec in matrix), 'arg matrix wrong type'
@@ -150,11 +138,6 @@ cdef class Alignment:
     def get_names(self):
         _r = self.inst.get().get_names()
         cdef list py_result = _r
-        return py_result
-    
-    def get_alignment_length(self):
-        cdef size_t _r = self.inst.get().get_alignment_length()
-        py_result = <size_t>_r
         return py_result
     
     def is_protein(self):
@@ -187,14 +170,14 @@ cdef class Alignment:
         assert isinstance(tree, bytes), 'arg tree wrong type'
     
     
-        _r = self.inst.get().simulate((<unsigned int>nsites), (<libcpp_string>tree))
+        _r = self.inst.get().simulate((<size_t>nsites), (<libcpp_string>tree))
         cdef list py_result = _r
         return py_result
     
     def _simulate_1(self,  nsites ):
         assert isinstance(nsites, (int, long)), 'arg nsites wrong type'
     
-        _r = self.inst.get().simulate((<unsigned int>nsites))
+        _r = self.inst.get().simulate((<size_t>nsites))
         cdef list py_result = _r
         return py_result
     
@@ -229,6 +212,27 @@ cdef class Alignment:
     
         self.inst.get().set_alpha((<double>alpha))
     
+    def _get_bionj_tree_0(self):
+        cdef libcpp_string _r = self.inst.get().get_bionj_tree()
+        py_result = <libcpp_string>_r
+        return py_result
+    
+    def _get_bionj_tree_1(self, list matrix ):
+        assert isinstance(matrix, list) and all(isinstance(elemt_rec, list) and all(isinstance(elemt_rec_rec, float) for elemt_rec_rec in elemt_rec) for elemt_rec in matrix), 'arg matrix wrong type'
+        cdef libcpp_vector[libcpp_vector[double]] v0 = matrix
+        cdef libcpp_string _r = self.inst.get().get_bionj_tree(v0)
+        
+        py_result = <libcpp_string>_r
+        return py_result
+    
+    def get_bionj_tree(self, *args):
+        if not args:
+            return self._get_bionj_tree_0(*args)
+        elif (len(args)==1) and (isinstance(args[0], list) and all(isinstance(elemt_rec, list) and all(isinstance(elemt_rec_rec, float) for elemt_rec_rec in elemt_rec) for elemt_rec in args[0])):
+            return self._get_bionj_tree_1(*args)
+        else:
+               raise Exception('can not handle type of %s' % (args,))
+    
     def set_model(self, bytes model_name ):
         assert isinstance(model_name, bytes), 'arg model_name wrong type'
     
@@ -243,6 +247,17 @@ cdef class Alignment:
         cdef libcpp_string _r = self.inst.get().get_model()
         py_result = <libcpp_string>_r
         return py_result
+    
+    def write_simulation(self,  nsites , bytes filename , bytes file_format ,  interleaved ):
+        assert isinstance(nsites, (int, long)), 'arg nsites wrong type'
+        assert isinstance(filename, bytes), 'arg filename wrong type'
+        assert isinstance(file_format, bytes), 'arg file_format wrong type'
+        assert isinstance(interleaved, (int, long)), 'arg interleaved wrong type'
+    
+    
+    
+    
+        self.inst.get().write_simulation((<size_t>nsites), (<libcpp_string>filename), (<libcpp_string>file_format), (<bool>interleaved))
     
     def set_simulator(self, bytes tree ):
         assert isinstance(tree, bytes), 'arg tree wrong type'

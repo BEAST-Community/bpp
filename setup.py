@@ -8,8 +8,8 @@ import pkg_resources
 
 data_dir = pkg_resources.resource_filename("autowrap", "data_files")
 
-ext = Extension("pairdist",
-                sources = ['pairdist.pyx',
+ext = Extension("bpp",
+                sources = ['bpp.pyx',
                            'src/Alignment.cpp',
                            'src/ModelFactory.cpp',
                            'src/SiteContainerBuilder.cpp'],
@@ -20,11 +20,11 @@ ext = Extension("pairdist",
                )
 
 setup(cmdclass={'build_ext':build_ext},
-      name="pairdist",
+      name="bpp",
       author='Kevin Gori',
       author_email='kgori@ebi.ac.uk',
       description='Pairwise distances by maximum likelihood',
-      url='https://github.com/kgori/pairdist.git',
+      url='https://github.com/kgori/bpp.git',
       version="0.1.3",
       scripts=['bin/pairdist', 'bin/simulate'],
       ext_modules = [ext],

@@ -9,14 +9,16 @@
 #include "SiteContainerBuilder.h"
 #include "ModelFactory.h"
 
-#include "Bpp/Numeric/Prob/GammaDiscreteDistribution.h"
+#include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
 #include <Bpp/Seq/Container/SiteContainerTools.h>
+#include <Bpp/Seq/Container/SiteContainerIterator.h>
+#include <Bpp/Seq/SiteTools.h>
 #include <Bpp/Seq/Container/VectorSiteContainer.h>
-#include "Bpp/Seq/SymbolListTools.h"
-#include "Bpp/Phyl/Distance/DistanceEstimation.h"
-#include "Bpp/Phyl/Distance/BioNJ.h"
+#include <Bpp/Seq/SymbolListTools.h>
+#include <Bpp/Phyl/Distance/DistanceEstimation.h>
+#include <Bpp/Phyl/Distance/BioNJ.h>
 #include <Bpp/Phyl/Io/Newick.h>
-#include "Bpp/Phyl/OptimizationTools.h"
+#include <Bpp/Phyl/OptimizationTools.h>
 #include <Bpp/Phyl/Simulation/HomogeneousSequenceSimulator.h>
 #include <Bpp/Phyl/Likelihood/NNIHomogeneousTreeLikelihood.h>
 #include <Bpp/Seq/Io/Fasta.h>
@@ -63,6 +65,19 @@ void Alignment::read_alignment(string filename, string file_format, string datat
     _set_datatype();
     _clear_distances();
     _clear_likelihood();
+}
+
+void Alignment::write_alignment(string filename, string file_format, bool interleaved) {
+    if (file_format == "fas" || file_format == "fasta") {
+        _write_fasta(sequences, filename);
+    }
+    else if (file_format == "phy" || file_format == "phylip") {
+        _write_phylip(sequences, filename, interleaved);
+    }
+    else {
+        cerr << "Unrecognised file format: " << file_format << endl;
+        throw exception();
+    }
 }
 
 void Alignment::set_model(string model_name) {
@@ -183,7 +198,7 @@ size_t Alignment::get_number_of_sequences() {
     return sequences->getNumberOfSequences();
 }
 
-size_t Alignment::get_alignment_length() {
+size_t Alignment::get_number_of_sites() {
     return sequences->getNumberOfSites();
 }
 
@@ -209,6 +224,20 @@ string Alignment::get_model() {
 string Alignment::get_namespace() {
     if (_name.empty()) throw Exception("No namespace is set");
     return _name;
+}
+
+size_t Alignment::get_number_of_informative_sites(bool exclude_gaps) {
+  ConstSiteIterator* si = nullptr;
+  if (include_gaps) si = new CompleteSiteContainerIterator(*sequences);
+  else si = new SimpleSiteContainerIterator(*sequences);
+  size_t S = 0;
+  const Site* site = 0;
+  while (si->hasMoreSites()) {
+      site = si->nextSite();
+      if (SiteTools::isParsimonyInformativeSite(*site)) S++;
+  }
+  delete si;
+  return S;
 }
 
 //void Alignment::_print_params() {
@@ -434,12 +463,14 @@ string Alignment::get_tree() {
 }
 
 // Simulator
-void Alignment::write_alignment(string filename, string file_format, bool interleaved) {
+void Alignment::write_simulation(size_t nsites, string filename, string file_format, bool interleaved) {
+    simulate(nsites);
+
     if (file_format == "fas" || file_format == "fasta") {
-        _write_fasta(filename);
+        _write_fasta(simulated_sequences, filename);
     }
     else if (file_format == "phy" || file_format == "phylip") {
-        _write_phylip(filename, interleaved);
+        _write_phylip(simulated_sequences, filename, interleaved);
     }
     else {
         cerr << "Unrecognised file format: " << file_format << endl;
@@ -476,18 +507,17 @@ void Alignment::set_simulator(string tree) {
     delete simtree;
 }
 
-vector<pair<string, string>> Alignment::simulate(unsigned int nsites, string tree) {
+vector<pair<string, string>> Alignment::simulate(size_t nsites, string tree) {
     set_simulator(tree);
     return simulate(nsites);
 }
 
-vector<pair<string, string>> Alignment::simulate(unsigned int nsites) {
+vector<pair<string, string>> Alignment::simulate(size_t nsites) {
     if (!simulator) {
         cout << "Tried to simulate without a simulator" << endl;
         throw exception();
     }
-    size_t nsites_{nsites};
-    SiteContainer * tmp = simulator->simulate(nsites_);
+    SiteContainer * tmp = simulator->simulate(nsites);
     simulated_sequences = make_shared<VectorSiteContainer>(*tmp);
     /* For future use: to mask gaps in a simulated alignment:
 
@@ -549,22 +579,14 @@ void Alignment::_set_datatype() {
     }
 }
 
-void Alignment::_write_fasta(string filename) {
-    if (!simulated_sequences) {
-        cerr << "No sequences exist yet" << endl;
-        throw exception();
-    }
+void Alignment::_write_fasta(shared_ptr<VectorSiteContainer> seqs, string filename) {
     Fasta writer;
-    writer.writeAlignment(filename, *simulated_sequences);
+    writer.writeAlignment(filename, *seqs);
 }
 
-void Alignment::_write_phylip(string filename, bool interleaved) {
-    if (!simulated_sequences) {
-        cerr << "No sequences exist yet" << endl;
-        throw exception();
-    }
+void Alignment::_write_phylip(shared_ptr<VectorSiteContainer> seqs, string filename, bool interleaved) {
     Phylip writer{true, !interleaved, 100, true, "  "};
-    writer.writeAlignment(filename, *simulated_sequences, true);
+    writer.writeAlignment(filename, *seqs, true);
 }
 
 map<int, double> Alignment::_vector_to_map(vector<double> vec) {

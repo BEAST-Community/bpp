@@ -8,6 +8,7 @@ cdef extern from "src/Alignment.h":
         Alignment(libcpp_string filename, libcpp_string file_format, libcpp_string datatype, bool interleaved) except +
         Alignment(libcpp_string filename, libcpp_string file_format, libcpp_string datatype, libcpp_string model_name, bool interleaved) except +
         void read_alignment(libcpp_string filename, libcpp_string file_format, libcpp_string datatype, bool interleaved) except +
+        void write_alignment(libcpp_string filename, libcpp_string file_format, bool interleaved) except +
         void set_model(libcpp_string model_name) except +
         void set_gamma(size_t ncat, double alpha) except +
         void set_alpha(double alpha) except +
@@ -24,7 +25,8 @@ cdef extern from "src/Alignment.h":
         libcpp_string get_namespace() except +
         libcpp_string get_model() except +
         size_t get_number_of_sequences() except +
-        size_t get_alignment_length() except +
+        size_t get_number_of_sites() except +
+        size_t get_number_of_informative_sites(bool exclude_gaps) except +
         bool is_dna() except +
         bool is_protein() except +
 
@@ -46,8 +48,8 @@ cdef extern from "src/Alignment.h":
         libcpp_string get_tree() except +
 
         # Simulator
-        void write_alignment(libcpp_string filename, libcpp_string file_format, bool interleaved) except +
+        void write_simulation(size_t nsites, libcpp_string filename, libcpp_string file_format, bool interleaved) except +
         void set_simulator(libcpp_string tree) except +
-        libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]] simulate(unsigned int nsites, libcpp_string tree) except +
-        libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]] simulate(unsigned int nsites) except +
+        libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]] simulate(size_t nsites, libcpp_string tree) except +
+        libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]] simulate(size_t nsites) except +
         libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]] get_simulated_sequences() except +

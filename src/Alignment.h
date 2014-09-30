@@ -29,6 +29,7 @@ class Alignment {
         Alignment(string filename, string file_format, string datatype, bool interleaved=true);
         Alignment(string filename, string file_format, string datatype, string model_name, bool interleaved=true);
         void read_alignment(string filename, string file_format, string datatype, bool interleaved=true);
+        void write_alignment(string filename, string file_format, bool interleaved=true);
         void set_model(string model_name);
         void set_gamma(size_t ncat=4, double alpha=1.0);
         void set_alpha(double alpha);
@@ -42,10 +43,11 @@ class Alignment {
         vector<double> get_frequencies();
         vector<string> get_names();
         size_t get_number_of_sequences();
-        size_t get_alignment_length();
+        size_t get_number_of_sites();
         string get_model();
         vector<vector<double>> get_exchangeabilities();
         string get_namespace();
+        size_t get_number_of_informative_sites(bool exclude_gaps);
         bool is_dna();
         bool is_protein();
 
@@ -67,18 +69,18 @@ class Alignment {
         string get_tree();
 
         // Simulator
-        void write_alignment(string filename, string file_format, bool interleaved);
+        void write_simulation(size_t nsites, string filename, string file_format, bool interleaved=true);
         void set_simulator(string tree);
-        vector<pair<string, string>> simulate(unsigned int nsites, string tree);
-        vector<pair<string, string>> simulate(unsigned int nsites);
+        vector<pair<string, string>> simulate(size_t nsites, string tree);
+        vector<pair<string, string>> simulate(size_t nsites);
         vector<pair<string, string>> get_simulated_sequences();
 
     private :
         void _set_dna();
         void _set_protein();
         void _set_datatype();
-        void _write_fasta(string filename);
-        void _write_phylip(string filename, bool interleaved);
+        void _write_fasta(shared_ptr<VectorSiteContainer> seqs, string filename);
+        void _write_phylip(shared_ptr<VectorSiteContainer> seqs, string filename, bool interleaved=true);
         map<int, double> _vector_to_map(vector<double>);
         void _check_compatible_model(string datatype, string model);
         void _clear_distances();
