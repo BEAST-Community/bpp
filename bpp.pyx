@@ -55,10 +55,10 @@ cdef class Alignment:
     
         self.inst.get().write_alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<bool>interleaved))
     
-    def initialise_likelihood(self, bytes tree ):
-        assert isinstance(tree, bytes), 'arg tree wrong type'
-    
-        self.inst.get().initialise_likelihood((<libcpp_string>tree))
+    def get_variances(self):
+        _r = self.inst.get().get_variances()
+        cdef list py_result = _r
+        return py_result
     
     def get_exchangeabilities(self):
         _r = self.inst.get().get_exchangeabilities()
@@ -78,12 +78,26 @@ cdef class Alignment:
         py_result = <size_t>_r
         return py_result
     
-    def set_gamma(self,  ncat , double alpha ):
-        assert isinstance(ncat, (int, long)), 'arg ncat wrong type'
-        assert isinstance(alpha, float), 'arg alpha wrong type'
+    def get_substitution_model(self):
+        cdef libcpp_string _r = self.inst.get().get_substitution_model()
+        py_result = <libcpp_string>_r
+        return py_result
     
+    def _initialise_likelihood_0(self):
+        self.inst.get().initialise_likelihood()
     
-        self.inst.get().set_gamma((<size_t>ncat), (<double>alpha))
+    def _initialise_likelihood_1(self, bytes tree ):
+        assert isinstance(tree, bytes), 'arg tree wrong type'
+    
+        self.inst.get().initialise_likelihood((<libcpp_string>tree))
+    
+    def initialise_likelihood(self, *args):
+        if not args:
+            return self._initialise_likelihood_0(*args)
+        elif (len(args)==1) and (isinstance(args[0], bytes)):
+            return self._initialise_likelihood_1(*args)
+        else:
+               raise Exception('can not handle type of %s' % (args,))
     
     def read_alignment(self, bytes filename , bytes file_format , bytes datatype ,  interleaved ):
         assert isinstance(filename, bytes), 'arg filename wrong type'
@@ -96,16 +110,13 @@ cdef class Alignment:
     
         self.inst.get().read_alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<libcpp_string>datatype), (<bool>interleaved))
     
-    def set_frequencies(self, list in_0 ):
-        assert isinstance(in_0, list) and all(isinstance(elemt_rec, float) for elemt_rec in in_0), 'arg in_0 wrong type'
-        cdef libcpp_vector[double] v0 = in_0
-        self.inst.get().set_frequencies(v0)
-        
-    
-    def get_likelihood(self):
-        cdef double _r = self.inst.get().get_likelihood()
-        py_result = <double>_r
+    def get_names(self):
+        _r = self.inst.get().get_names()
+        cdef list py_result = _r
         return py_result
+    
+    def set_constant_rate_model(self):
+        self.inst.get().set_constant_rate_model()
     
     def get_number_of_informative_sites(self,  exclude_gaps ):
         assert isinstance(exclude_gaps, (int, long)), 'arg exclude_gaps wrong type'
@@ -119,15 +130,18 @@ cdef class Alignment:
     
         self.inst.get().optimise_topology((<bool>fix_model_params))
     
+    def get_number_of_free_parameters(self):
+        cdef size_t _r = self.inst.get().get_number_of_free_parameters()
+        py_result = <size_t>_r
+        return py_result
+    
     def get_number_of_gamma_categories(self):
         cdef size_t _r = self.inst.get().get_number_of_gamma_categories()
         py_result = <size_t>_r
         return py_result
     
-    def get_variances(self):
-        _r = self.inst.get().get_variances()
-        cdef list py_result = _r
-        return py_result
+    def _print_params(self):
+        self.inst.get()._print_params()
     
     def set_distance_matrix(self, list matrix ):
         assert isinstance(matrix, list) and all(isinstance(elemt_rec, list) and all(isinstance(elemt_rec_rec, float) for elemt_rec_rec in elemt_rec) for elemt_rec in matrix), 'arg matrix wrong type'
@@ -135,10 +149,11 @@ cdef class Alignment:
         self.inst.get().set_distance_matrix(v0)
         
     
-    def get_names(self):
-        _r = self.inst.get().get_names()
-        cdef list py_result = _r
-        return py_result
+    def set_frequencies(self, list in_0 ):
+        assert isinstance(in_0, list) and all(isinstance(elemt_rec, float) for elemt_rec in in_0), 'arg in_0 wrong type'
+        cdef libcpp_vector[double] v0 = in_0
+        self.inst.get().set_frequencies(v0)
+        
     
     def is_protein(self):
         cdef bool _r = self.inst.get().is_protein()
@@ -189,6 +204,16 @@ cdef class Alignment:
         else:
                raise Exception('can not handle type of %s' % (args,))
     
+    def get_rate_model_categories(self):
+        _r = self.inst.get().get_rate_model_categories()
+        cdef list py_result = _r
+        return py_result
+    
+    def set_substitution_model(self, bytes model_name ):
+        assert isinstance(model_name, bytes), 'arg model_name wrong type'
+    
+        self.inst.get().set_substitution_model((<libcpp_string>model_name))
+    
     def get_alpha(self):
         cdef double _r = self.inst.get().get_alpha()
         py_result = <double>_r
@@ -206,6 +231,13 @@ cdef class Alignment:
     
     def fast_compute_distances(self):
         self.inst.get().fast_compute_distances()
+    
+    def set_gamma_rate_model(self,  ncat , double alpha ):
+        assert isinstance(ncat, (int, long)), 'arg ncat wrong type'
+        assert isinstance(alpha, float), 'arg alpha wrong type'
+    
+    
+        self.inst.get().set_gamma_rate_model((<size_t>ncat), (<double>alpha))
     
     def set_alpha(self, double alpha ):
         assert isinstance(alpha, float), 'arg alpha wrong type'
@@ -233,19 +265,14 @@ cdef class Alignment:
         else:
                raise Exception('can not handle type of %s' % (args,))
     
-    def set_model(self, bytes model_name ):
-        assert isinstance(model_name, bytes), 'arg model_name wrong type'
-    
-        self.inst.get().set_model((<libcpp_string>model_name))
-    
     def get_number_of_sequences(self):
         cdef size_t _r = self.inst.get().get_number_of_sequences()
         py_result = <size_t>_r
         return py_result
     
-    def get_model(self):
-        cdef libcpp_string _r = self.inst.get().get_model()
-        py_result = <libcpp_string>_r
+    def get_likelihood(self):
+        cdef double _r = self.inst.get().get_likelihood()
+        py_result = <double>_r
         return py_result
     
     def write_simulation(self,  nsites , bytes filename , bytes file_format ,  interleaved ):

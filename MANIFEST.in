@@ -1,4 +1,4 @@
 include README.md
-include pairdist_h.pxd
+include bpp_h.pxd
 recursive-include bin *
 recursive-include src *.h

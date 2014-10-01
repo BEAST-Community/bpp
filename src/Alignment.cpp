@@ -10,6 +10,7 @@
 #include "ModelFactory.h"
 
 #include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
+#include <Bpp/Numeric/Prob/ConstantDistribution.h>
 #include <Bpp/Seq/Container/SiteContainerTools.h>
 #include <Bpp/Seq/Container/SiteContainerIterator.h>
 #include <Bpp/Seq/SiteTools.h>
@@ -36,24 +37,34 @@ using namespace std;
 double VARMIN = 0.000001;
 double DISTMAX = 10000;
 
+size_t getNumberOfDistinctPositionsWithoutGap(const SymbolList& l1, const SymbolList& l2) {
+      if (l1.getAlphabet()->getAlphabetType() != l2.getAlphabet()->getAlphabetType()) throw AlphabetMismatchException("SymbolListTools::getNumberOfDistinctPositions.", l1.getAlphabet(), l2.getAlphabet());
+      size_t n = min(l1.size(), l2.size());
+      size_t count = 0;
+      for (size_t i = 0; i < n; i++) {
+          if (l1[i] != -1 && l2[i] != -1 && l1[i] != l2[i]) count++;
+      }
+      return count;
+    }
+
 Alignment::Alignment(vector<pair<string, string>> headers_sequences, string datatype) {
     sequences = SiteContainerBuilder::construct_alignment_from_strings(headers_sequences, datatype);
     _set_datatype();
-    set_gamma();
+    set_gamma_rate_model();
 }
 
 Alignment::Alignment(string filename, string file_format, string datatype, bool interleaved) {
     read_alignment(filename, file_format, datatype, interleaved);
     _set_datatype();
-    set_gamma();
+    set_gamma_rate_model();
 }
 
 Alignment::Alignment(string filename, string file_format, string datatype, string model_name, bool interleaved) {
     read_alignment(filename, file_format, datatype, interleaved);
-    set_gamma();
+    set_gamma_rate_model();
     try {
         _check_compatible_model(datatype, model_name);
-        set_model(model_name);
+        set_substitution_model(model_name);
     }
     catch (Exception& e) {
         cerr << "Alignment was initialised, but the model wasn't valid: " <<e.what() << endl;
@@ -80,7 +91,7 @@ void Alignment::write_alignment(string filename, string file_format, bool interl
     }
 }
 
-void Alignment::set_model(string model_name) {
+void Alignment::set_substitution_model(string model_name) {
     string datatype = is_protein() ? "protein" : "dna";
     _check_compatible_model(datatype, model_name);
     model = ModelFactory::create(model_name);
@@ -88,10 +99,20 @@ void Alignment::set_model(string model_name) {
     _clear_likelihood();
 }
 
-void Alignment::set_gamma(size_t ncat, double alpha) {
-    rates = make_shared<GammaDiscreteDistribution>(ncat, alpha, alpha);
-    rates->aliasParameters("alpha", "beta");
+void Alignment::set_gamma_rate_model(size_t ncat, double alpha) {
+    if (ncat == 1) {
+        cerr << "A discrete gamma distribution with 1 category is a constant distribution, so that's what I'm setting." << endl;
+        set_constant_rate_model();
+    }
+    else {
+        rates = make_shared<GammaDiscreteDistribution>(ncat, alpha, alpha);
+        rates->aliasParameters("alpha", "beta");
+    }
     _clear_likelihood();
+}
+
+void Alignment::set_constant_rate_model() {
+    rates = make_shared<ConstantDistribution>(1.0);
 }
 
 void Alignment::set_alpha(double alpha) {
@@ -146,7 +167,7 @@ void Alignment::set_namespace(string name) {
 
 double Alignment::get_alpha() {
     if (rates) return rates->getParameterValue("alpha");
-    else throw Exception("Rate model not set");
+    else throw Exception("Gamma distributed rate model not set");
 }
 
 size_t Alignment::get_number_of_gamma_categories() {
@@ -157,21 +178,23 @@ size_t Alignment::get_number_of_gamma_categories() {
 vector<double> Alignment::get_rates(string order) {
     if (is_dna()) {
         vector<double> rates_vec;
+        RowMatrix<double> exch = model->getExchangeabilityMatrix();
         if (order == "acgt" || order == "ACGT") { //{a-c, a-g, a-t, c-g, c-t, g-t=1}
-            double normaliser = model->getParameterValue("c");
-            rates_vec.push_back(model->getParameterValue("d") / normaliser);
-            rates_vec.push_back(1.0 / normaliser);
-            rates_vec.push_back(model->getParameterValue("b") / normaliser);
-            rates_vec.push_back(model->getParameterValue("e") / normaliser);
-            rates_vec.push_back(model->getParameterValue("a") / normaliser);
+            double normaliser = exch(2,3);
+            rates_vec.push_back(exch(0,1) / normaliser);
+            rates_vec.push_back(exch(0,2) / normaliser);
+            rates_vec.push_back(exch(0,3) / normaliser);
+            rates_vec.push_back(exch(1,2) / normaliser);
+            rates_vec.push_back(exch(1,3) / normaliser);
             rates_vec.push_back(1.0);
         }
         else if (order == "tcag" || order == "TCAG") { //{a=t-c, b=t-a, c=t-g, d=c-a, e=c-g, f=a-g=1}
-            rates_vec.push_back(model->getParameterValue("a"));
-            rates_vec.push_back(model->getParameterValue("b"));
-            rates_vec.push_back(model->getParameterValue("c"));
-            rates_vec.push_back(model->getParameterValue("d"));
-            rates_vec.push_back(model->getParameterValue("e"));
+            double normaliser = exch(0,2);
+            rates_vec.push_back(exch(1,3) / normaliser);
+            rates_vec.push_back(exch(0,3) / normaliser);
+            rates_vec.push_back(exch(2,3) / normaliser);
+            rates_vec.push_back(exch(0,1) / normaliser);
+            rates_vec.push_back(exch(1,2) / normaliser);
             rates_vec.push_back(1.0);
         }
         else {
@@ -188,6 +211,10 @@ vector<double> Alignment::get_rates(string order) {
 
 vector<double> Alignment::get_frequencies() {
     return model->getFrequencies();
+}
+
+vector<double> Alignment::get_rate_model_categories() {
+    return rates->getCategories();
 }
 
 vector<string> Alignment::get_names() {
@@ -216,7 +243,7 @@ vector<vector<double>> Alignment::get_exchangeabilities() {
     return matrix;
 }
 
-string Alignment::get_model() {
+string Alignment::get_substitution_model() {
     if (_model.empty()) throw Exception("No model name is set");
     return _model;
 }
@@ -227,23 +254,38 @@ string Alignment::get_namespace() {
 }
 
 size_t Alignment::get_number_of_informative_sites(bool exclude_gaps) {
-  ConstSiteIterator* si = nullptr;
-  if (exclude_gaps) si = new CompleteSiteContainerIterator(*sequences);
-  else si = new SimpleSiteContainerIterator(*sequences);
-  size_t S = 0;
-  const Site* site = 0;
-  while (si->hasMoreSites()) {
-      site = si->nextSite();
-      if (SiteTools::isParsimonyInformativeSite(*site)) S++;
-  }
-  delete si;
-  return S;
+    ConstSiteIterator* si = nullptr;
+    if (exclude_gaps) si = new CompleteSiteContainerIterator(*sequences);
+    else si = new SimpleSiteContainerIterator(*sequences);
+    size_t S = 0;
+    const Site* site = 0;
+    while (si->hasMoreSites()) {
+        site = si->nextSite();
+        if (SiteTools::isParsimonyInformativeSite(*site)) S++;
+    }
+    delete si;
+    return S;
+}
+
+size_t Alignment::get_number_of_free_parameters() {
+    if (!likelihood) throw Exception("Likelihood model not initialised");
+    ParameterList pl = likelihood->getBranchLengthsParameters();
+    pl.addParameters(model->getIndependentParameters());
+    if (rates->getName() == "Gamma") pl.addParameters(rates->getIndependentParameters());
+    return pl.size();
 }
 
 void Alignment::_print_params() {
-    ParameterList pl = rates->getParameters();
-    pl.addParameters(model->getParameters());
-    pl.printParameters(cout);
+    if (likelihood) {
+            ParameterList pl = likelihood->getParameters();
+            pl.printParameters(cout);
+    }
+    else if (rates && model) {
+         ParameterList pl = rates->getIndependentParameters();
+         pl.addParameters(model->getIndependentParameters());
+         pl.printParameters(cout);
+         cout << "----------" << endl;
+    }
 }
 
 bool Alignment::is_dna() {
@@ -303,8 +345,9 @@ void Alignment::fast_compute_distances() {
     for (size_t i = 0; i < n; i++) {
         (*distances)(i, i) = 0;
         for (size_t j=i+1; j < n; j++) {
-            size_t d = SymbolListTools::getNumberOfDistinctPositions(sequences->getSequence(i), sequences->getSequence(j));
+            size_t d = getNumberOfDistinctPositionsWithoutGap(sequences->getSequence(i), sequences->getSequence(j));
             size_t g = SymbolListTools::getNumberOfPositionsWithoutGap(sequences->getSequence(i), sequences->getSequence(j));
+//            cout << sequences->getSequence(i).toString() << endl << sequences->getSequence(j).toString() << endl;
             double dist = _jcdist(d, g, s);
             double var = _jcvar(d, g, s);
             (*distances)(i, j) = (*distances)(j, i) = dist;
@@ -379,6 +422,17 @@ vector<vector<double>> Alignment::get_distance_variance_matrix() {
 }
 
 // Likelihood
+void Alignment::initialise_likelihood() {
+    if (!distances) fast_compute_distances();
+    try {
+        initialise_likelihood(get_bionj_tree());
+    }
+    catch (Exception& e) {
+        cerr << e.what();
+        _clear_distances();
+    }
+}
+
 void Alignment::initialise_likelihood(string tree) {
     if (!model) {
         cerr << "Model not set" << endl;
@@ -430,14 +484,12 @@ void Alignment::optimise_topology(bool fix_model_params) {
         cerr << "Likelihood calculator not set - call initialise_likelihood" << endl;
         throw Exception("Uninitialised likelihood error");
     }
-    ParameterList pl;
-    if (fix_model_params) {
-        pl = likelihood->getBranchLengthsParameters();
+    ParameterList pl = likelihood->getBranchLengthsParameters();
+    if (!fix_model_params) {
+        pl.addParameters(model->getIndependentParameters());
+        if (rates->getName() == "Gamma") pl.addParameters(rates->getIndependentParameters());
     }
-    else {
-        pl = likelihood->getParameters();
-    }
-    likelihood = make_shared<NNIHomogeneousTreeLikelihood>(OptimizationTools::optimizeTreeNNI2(likelihood.get(), pl, true, 0.001, 0.1, 1000000, 1, NULL, NULL, false, 10));
+    likelihood = make_shared<NNIHomogeneousTreeLikelihood>(*OptimizationTools::optimizeTreeNNI2(likelihood.get(), pl, true, 0.001, 0.1, 1000000, 1, NULL, NULL, false, 10));
 }
 
 double Alignment::get_likelihood() {
@@ -640,6 +692,7 @@ double Alignment::_jcdist(double d, double g, double s) {
     double dist;
     p = g > 0 ? d / g : 0;
     dist = (1 - (s/(s-1) * p)) > 0 ? - ((s-1)/s) * log(1 - (s/(s-1) * p)) : DISTMAX;
+//    cout << "d,g,s,p,dist : " << d << " " << g << " " << s << " " << p << " " << dist << endl;
     return dist;
 }
 

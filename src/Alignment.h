@@ -10,7 +10,7 @@
 
 #include <Bpp/Seq/Container/VectorSiteContainer.h>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
-#include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
+#include <Bpp/Numeric/Prob/AbstractDiscreteDistribution.h>
 #include <Bpp/Seq/DistanceMatrix.h>
 #include <Bpp/Phyl/Likelihood/NNIHomogeneousTreeLikelihood.h>
 #include <Bpp/Phyl/Simulation/HomogeneousSequenceSimulator.h>
@@ -30,8 +30,9 @@ class Alignment {
         Alignment(string filename, string file_format, string datatype, string model_name, bool interleaved=true);
         void read_alignment(string filename, string file_format, string datatype, bool interleaved=true);
         void write_alignment(string filename, string file_format, bool interleaved=true);
-        void set_model(string model_name);
-        void set_gamma(size_t ncat=4, double alpha=1.0);
+        void set_substitution_model(string model_name);
+        void set_gamma_rate_model(size_t ncat=4, double alpha=1.0);
+        void set_constant_rate_model();
         void set_alpha(double alpha);
         void set_number_of_gamma_categories(size_t ncat);
         void set_rates(vector<double>, string order="acgt");
@@ -40,11 +41,13 @@ class Alignment {
         double get_alpha();
         size_t get_number_of_gamma_categories();
         vector<double> get_rates(string order);
+        vector<double> get_rate_model_categories();
         vector<double> get_frequencies();
         vector<string> get_names();
         size_t get_number_of_sequences();
         size_t get_number_of_sites();
-        string get_model();
+        size_t get_number_of_free_parameters();
+        string get_substitution_model();
         vector<vector<double>> get_exchangeabilities();
         string get_namespace();
         size_t get_number_of_informative_sites(bool exclude_gaps);
@@ -63,6 +66,7 @@ class Alignment {
         vector<vector<double>> get_distance_variance_matrix();
 
         // Likelihood
+        void initialise_likelihood();
         void initialise_likelihood(string tree);
         void optimise_parameters(bool fix_branch_lengths);
         void optimise_topology(bool fix_model_params);
@@ -94,7 +98,7 @@ class Alignment {
         shared_ptr<VectorSiteContainer> sequences = nullptr;
         shared_ptr<VectorSiteContainer> simulated_sequences = nullptr;
         shared_ptr<SubstitutionModel> model = nullptr;
-        shared_ptr<GammaDiscreteDistribution> rates = nullptr;
+        shared_ptr<AbstractDiscreteDistribution> rates = nullptr;
         shared_ptr<DistanceMatrix> distances = nullptr;
         shared_ptr<DistanceMatrix> variances = nullptr;
         shared_ptr<NNIHomogeneousTreeLikelihood> likelihood = nullptr;

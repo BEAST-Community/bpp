@@ -9,8 +9,9 @@ cdef extern from "src/Alignment.h":
         Alignment(libcpp_string filename, libcpp_string file_format, libcpp_string datatype, libcpp_string model_name, bool interleaved) except +
         void read_alignment(libcpp_string filename, libcpp_string file_format, libcpp_string datatype, bool interleaved) except +
         void write_alignment(libcpp_string filename, libcpp_string file_format, bool interleaved) except +
-        void set_model(libcpp_string model_name) except +
-        void set_gamma(size_t ncat, double alpha) except +
+        void set_substitution_model(libcpp_string model_name) except +
+        void set_gamma_rate_model(size_t ncat, double alpha) except +
+        void set_constant_rate_model() except +
         void set_alpha(double alpha) except +
         void set_number_of_gamma_categories(size_t ncat) except +
         void set_rates(libcpp_vector[double], libcpp_string order) except +
@@ -19,14 +20,16 @@ cdef extern from "src/Alignment.h":
         double get_alpha() except +
         size_t get_number_of_gamma_categories() except +
         libcpp_vector[double] get_rates(libcpp_string order) except +
+        libcpp_vector[double] get_rate_model_categories() except +
         libcpp_vector[double] get_frequencies() except +
         libcpp_vector[libcpp_string] get_names() except +
         libcpp_vector[libcpp_vector[double]] get_exchangeabilities() except +
         libcpp_string get_namespace() except +
-        libcpp_string get_model() except +
+        libcpp_string get_substitution_model() except +
         size_t get_number_of_sequences() except +
         size_t get_number_of_sites() except +
         size_t get_number_of_informative_sites(bool exclude_gaps) except +
+        size_t get_number_of_free_parameters() except +
         bool is_dna() except +
         bool is_protein() except +
         void _print_params() except +
@@ -42,6 +45,7 @@ cdef extern from "src/Alignment.h":
         libcpp_vector[libcpp_vector[double]] get_distance_variance_matrix() except +
 
         # Likelihood
+        void initialise_likelihood() except +
         void initialise_likelihood(libcpp_string tree) except +
         void optimise_parameters(bool fix_branch_lengths) except +
         void optimise_topology(bool fix_model_params) except +
