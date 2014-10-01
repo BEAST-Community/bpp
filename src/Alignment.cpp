@@ -47,16 +47,16 @@ size_t getNumberOfDistinctPositionsWithoutGap(const SymbolList& l1, const Symbol
       return count;
     }
 
+Alignment::Alignment() {}
+
 Alignment::Alignment(vector<pair<string, string>> headers_sequences, string datatype) {
     sequences = SiteContainerBuilder::construct_alignment_from_strings(headers_sequences, datatype);
     _set_datatype();
-    set_gamma_rate_model();
 }
 
 Alignment::Alignment(string filename, string file_format, string datatype, bool interleaved) {
     read_alignment(filename, file_format, datatype, interleaved);
     _set_datatype();
-    set_gamma_rate_model();
 }
 
 Alignment::Alignment(string filename, string file_format, string datatype, string model_name, bool interleaved) {
@@ -218,14 +218,17 @@ vector<double> Alignment::get_rate_model_categories() {
 }
 
 vector<string> Alignment::get_names() {
+    if (!sequences) throw Exception("This instance has no sequences");
     return sequences->getSequencesNames();
 }
 
 size_t Alignment::get_number_of_sequences() {
+    if (!sequences) throw Exception("This instance has no sequences");
     return sequences->getNumberOfSequences();
 }
 
 size_t Alignment::get_number_of_sites() {
+    if (!sequences) throw Exception("This instance has no sequences");
     return sequences->getNumberOfSites();
 }
 
@@ -298,6 +301,7 @@ bool Alignment::is_protein() {
 
 // Distance
 void Alignment::compute_distances() {
+    if (!sequences) throw Exception("This instance has no sequences");
     if (!model) throw Exception("No model of evolution available");
     VectorSiteContainer* sites_ = sequences->clone();
     SiteContainerTools::changeGapsToUnknownCharacters(*sites_);
@@ -330,6 +334,7 @@ void Alignment::compute_distances() {
 }
 
 void Alignment::fast_compute_distances() {
+    if (!sequences) throw Exception("This instance has no sequences");
     unsigned int s;
     if (is_dna()) {
         s = 4;
@@ -619,6 +624,7 @@ void Alignment::_set_protein() {
 }
 
 void Alignment::_set_datatype() {
+    if (!sequences) throw Exception("This instance has no sequences");
     string type = sequences->getAlphabet()->getAlphabetType();
     if (type == "DNA alphabet") {
         _set_dna();
@@ -706,6 +712,7 @@ double Alignment::_jcvar(double d, double g, double s) {
 }
 
 shared_ptr<DistanceMatrix> Alignment::_create_distance_matrix(vector<vector<double>> matrix) {
+    if (!sequences) throw Exception("This instance has no sequences");
     size_t n = sequences->getNumberOfSequences();
     if (matrix.size() != n) throw Exception("Matrix wrong size error");
     if (distances) distances.reset();
