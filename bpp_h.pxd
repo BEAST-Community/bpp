@@ -29,6 +29,7 @@ cdef extern from "src/Alignment.h":
         size_t get_number_of_informative_sites(bool exclude_gaps) except +
         bool is_dna() except +
         bool is_protein() except +
+        void _print_params() except +
 
         # Distance
         void compute_distances() except +

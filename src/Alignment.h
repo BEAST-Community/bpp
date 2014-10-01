@@ -50,6 +50,7 @@ class Alignment {
         size_t get_number_of_informative_sites(bool exclude_gaps);
         bool is_dna();
         bool is_protein();
+        void _print_params();
 
         // Distance
         void compute_distances();

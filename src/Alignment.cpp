@@ -13,7 +13,7 @@
 #include <Bpp/Seq/Container/SiteContainerTools.h>
 #include <Bpp/Seq/Container/SiteContainerIterator.h>
 #include <Bpp/Seq/SiteTools.h>
-#include <Bpp/Seq/Container/VectorSiteContainer.h>
+#include <Bpp/Seq/Container/CompressedVectorSiteContainer.h>
 #include <Bpp/Seq/SymbolListTools.h>
 #include <Bpp/Phyl/Distance/DistanceEstimation.h>
 #include <Bpp/Phyl/Distance/BioNJ.h>
@@ -145,7 +145,7 @@ void Alignment::set_namespace(string name) {
 }
 
 double Alignment::get_alpha() {
-    if (rates) return rates->getParameterValue(rates->getNamespace() + "alpha");
+    if (rates) return rates->getParameterValue("alpha");
     else throw Exception("Rate model not set");
 }
 
@@ -158,20 +158,20 @@ vector<double> Alignment::get_rates(string order) {
     if (is_dna()) {
         vector<double> rates_vec;
         if (order == "acgt" || order == "ACGT") { //{a-c, a-g, a-t, c-g, c-t, g-t=1}
-            double normaliser = model->getParameterValue(model->getNamespace() + "c");
-            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "d") / normaliser);
+            double normaliser = model->getParameterValue("c");
+            rates_vec.push_back(model->getParameterValue("d") / normaliser);
             rates_vec.push_back(1.0 / normaliser);
-            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "b") / normaliser);
-            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "e") / normaliser);
-            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "a") / normaliser);
+            rates_vec.push_back(model->getParameterValue("b") / normaliser);
+            rates_vec.push_back(model->getParameterValue("e") / normaliser);
+            rates_vec.push_back(model->getParameterValue("a") / normaliser);
             rates_vec.push_back(1.0);
         }
         else if (order == "tcag" || order == "TCAG") { //{a=t-c, b=t-a, c=t-g, d=c-a, e=c-g, f=a-g=1}
-            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "a"));
-            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "b"));
-            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "c"));
-            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "d"));
-            rates_vec.push_back(model->getParameterValue(model->getNamespace() + "e"));
+            rates_vec.push_back(model->getParameterValue("a"));
+            rates_vec.push_back(model->getParameterValue("b"));
+            rates_vec.push_back(model->getParameterValue("c"));
+            rates_vec.push_back(model->getParameterValue("d"));
+            rates_vec.push_back(model->getParameterValue("e"));
             rates_vec.push_back(1.0);
         }
         else {
@@ -240,11 +240,11 @@ size_t Alignment::get_number_of_informative_sites(bool exclude_gaps) {
   return S;
 }
 
-//void Alignment::_print_params() {
-//    ParameterList pl = rates->getParameters();
-//    pl.addParameters(model->getParameters());
-//    pl.printParameters(cout);
-//}
+void Alignment::_print_params() {
+    ParameterList pl = rates->getParameters();
+    pl.addParameters(model->getParameters());
+    pl.printParameters(cout);
+}
 
 bool Alignment::is_dna() {
     return dna && !protein;
@@ -401,11 +401,12 @@ void Alignment::initialise_likelihood(string tree) {
         cerr << "Couldn\'t understand this tree: " << tree << endl;
         throw Exception("Tree error");
     }
-    VectorSiteContainer* sites_ = sequences->clone();
+    auto sites_ = new CompressedVectorSiteContainer(*sequences);
     SiteContainerTools::changeGapsToUnknownCharacters(*sites_);
     likelihood = make_shared<NNIHomogeneousTreeLikelihood>(*liktree, *sites_, model.get(), rates.get(), true, true);
     likelihood->initialize();
     delete liktree;
+    delete sites_;
 }
 
 void Alignment::optimise_parameters(bool fix_branch_lengths) {
@@ -436,7 +437,7 @@ void Alignment::optimise_topology(bool fix_model_params) {
     else {
         pl = likelihood->getParameters();
     }
-    OptimizationTools::optimizeTreeNNI2(likelihood.get(), pl, true, 0.001, 0.1, 1000000, 1, NULL, NULL, false, 10);
+    likelihood = make_shared<NNIHomogeneousTreeLikelihood>(OptimizationTools::optimizeTreeNNI2(likelihood.get(), pl, true, 0.001, 0.1, 1000000, 1, NULL, NULL, false, 10));
 }
 
 double Alignment::get_likelihood() {
