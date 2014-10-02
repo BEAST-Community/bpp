@@ -15,7 +15,81 @@
 #include <Bpp/Seq/Sequence.h>
 #include <algorithm>
 #include <functional>
+#include <numeric>
 #include <stdexcept>
+
+/*
+Takes two vectors and returns the union of their elements, in sorted order
+*/
+template<typename T>
+vector<T> merge_vectors(vector<T> &v1, vector<T> &v2) {
+    sort(v1.begin(), v1.end());
+    sort(v2.begin(), v2.end());
+    vector<T> result;
+    set_union(v1.begin(), v1.end(), v2.begin(), v2.end(),
+              back_inserter(result));
+    return result;
+}
+
+/*
+Merges two VectorSiteContainers into a single VectorSiteContainer
+*/
+shared_ptr<VectorSiteContainer> merge_vscs(shared_ptr<VectorSiteContainer> s1, shared_ptr<VectorSiteContainer> s2)
+throw (AlphabetMismatchException, Exception)
+{
+    if (s1->getAlphabet()->getAlphabetType() != s2->getAlphabet()->getAlphabetType())
+        throw AlphabetMismatchException("SiteContainerTools::merge.", s1->getAlphabet(), s2->getAlphabet());
+
+    auto alphabet = s1->getAlphabet();
+    const int unknown_char = alphabet->getUnknownCharacterCode();
+    size_t l1 = s1->getNumberOfSites();
+    size_t l2 = s2->getNumberOfSites();
+    auto n1 = s1->getSequencesNames();
+    auto n2 = s2->getSequencesNames();
+    vector<string> allnames = merge_vectors(n1, n2);
+
+    unique_ptr<VectorSequenceContainer> tmp_container(new VectorSequenceContainer(alphabet));
+    for (auto &n : allnames) {
+        vector<int> seqvec1;
+        vector<int> seqvec2;
+        seqvec1.reserve(l1+l2);
+        seqvec2.reserve(l2);
+
+        if (s1->hasSequence(n)) {
+            auto tmpvec = s1->getSequence(n).getContent();
+            seqvec1.insert( seqvec1.end(), tmpvec.begin(), tmpvec.end());
+        }
+        else {
+            vector<int> tmpvec(l1, unknown_char);
+            seqvec1.insert( seqvec1.end(), tmpvec.begin(), tmpvec.end());
+        }
+
+        if (s2->hasSequence(n)) {
+            auto tmpvec = s2->getSequence(n).getContent();
+            seqvec2.insert( seqvec2.end(), tmpvec.begin(), tmpvec.end());
+        }
+        else {
+            vector<int> tmpvec(l2, unknown_char);
+            seqvec2.insert( seqvec2.end(), tmpvec.begin(), tmpvec.end());
+        }
+        seqvec1.insert(seqvec1.end(), seqvec2.begin(), seqvec2.end());
+        unique_ptr<BasicSequence> seq(new BasicSequence(n, seqvec1, alphabet));
+
+        tmp_container->addSequence(*seq, false);
+    }
+
+    auto output = make_shared<VectorSiteContainer>(*tmp_container);
+    return output;
+}
+
+/*
+Folds vector of VSC into single VSC using merge()
+*/
+//shared_ptr<VectorSiteContainer> fold(vector<shared_ptr<VectorSiteContainer>> vec_of_vsc) {
+//    auto first_vsc = make_shared<VectorSiteContainer>(*vec_of_vsc[0]);
+//    //return accumulate(vec_of_vsc.begin()+1, vec_of_vsc.end(), first_vsc, merge_vscs);
+//    return merge_vscs(first_vsc, vec_of_vsc[1]);
+//}
 
 shared_ptr<VectorSiteContainer> SiteContainerBuilder::construct_alignment_from_strings(vector<pair<string, string>> headers_sequences, string datatype)
         throw (Exception) {
@@ -86,6 +160,15 @@ shared_ptr<VectorSiteContainer> SiteContainerBuilder::construct_sorted_alignment
     auto ret = make_shared<VectorSiteContainer>(*tmp);
     delete tmp;
     return ret;
+}
+
+/*
+Folds vector of VSC into single VSC using merge_vscs()
+*/
+shared_ptr<VectorSiteContainer> SiteContainerBuilder::concatenate_alignments(vector<shared_ptr<VectorSiteContainer>> vec_of_vsc) {
+    auto first_vsc = make_shared<VectorSiteContainer>(*vec_of_vsc[0]);
+    return accumulate(vec_of_vsc.begin()+1, vec_of_vsc.end(), first_vsc, merge_vscs);
+//    return merge_vscs(first_vsc, vec_of_vsc[1]);
 }
 
 bool SiteContainerBuilder::asking_for_fasta(string file_format) {

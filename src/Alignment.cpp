@@ -49,6 +49,16 @@ size_t getNumberOfDistinctPositionsWithoutGap(const SymbolList& l1, const Symbol
 
 Alignment::Alignment() {}
 
+Alignment::Alignment(vector<Alignment> alignments) {
+    vector<shared_ptr<VectorSiteContainer>> vec_of_vsc;
+    vec_of_vsc.reserve(alignments.size());
+    for (auto al : alignments) {
+        if (!al.sequences) throw Exception("At least one alignment has no sequences");
+        vec_of_vsc.push_back(al.sequences);
+    }
+    sequences = SiteContainerBuilder::concatenate_alignments(vec_of_vsc);
+}
+
 Alignment::Alignment(vector<pair<string, string>> headers_sequences, string datatype) {
     sequences = SiteContainerBuilder::construct_alignment_from_strings(headers_sequences, datatype);
 }
@@ -695,6 +705,9 @@ map<int, double> Alignment::_vector_to_map(vector<double> vec) {
 void Alignment::_check_compatible_model(string model) {
     bool incompat = false;
     if (is_dna() & ((model == "JTT92") | (model == "JCprot") | (model == "DSO78") | (model == "WAG01") | (model == "LG08"))) {
+        incompat = true;
+    }
+    else if (is_dna() & ((model == "JTT92+F") | (model == "JCprot+F") | (model == "DSO78+F") | (model == "WAG01+F") | (model == "LG08+F"))) {
         incompat = true;
     }
     else if (is_protein() & ((model == "JCnuc") | (model == "JC69") | (model == "K80") | (model == "HKY85") | (model == "TN93" ) | (model == "GTR") | (model == "T92") | (model == "F84"))) {

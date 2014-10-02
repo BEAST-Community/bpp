@@ -5,6 +5,7 @@ from  libcpp cimport bool
 cdef extern from "src/Alignment.h":
     cdef cppclass Alignment:
         Alignment() except +
+        Alignment(libcpp_vector[Alignment] alignments) except +
         Alignment(libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]], libcpp_string datatype) except +
         Alignment(libcpp_string filename, libcpp_string file_format, bool interleaved) except +
         Alignment(libcpp_string filename, libcpp_string file_format, libcpp_string datatype, bool interleaved) except +
