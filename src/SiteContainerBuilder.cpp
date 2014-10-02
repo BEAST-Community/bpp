@@ -7,11 +7,14 @@
 
 #include "SiteContainerBuilder.h"
 #include <Bpp/Exceptions.h>
+#include <Bpp/Seq/Alphabet/AlphabetExceptions.h>
 #include <Bpp/Seq/Alphabet/AlphabetTools.h>
 #include <Bpp/Seq/Alphabet/LetterAlphabet.h>
 #include <Bpp/Seq/Io/Fasta.h>
 #include <Bpp/Seq/Io/Phylip.h>
 #include <Bpp/Seq/Sequence.h>
+#include <algorithm>
+#include <functional>
 #include <stdexcept>
 
 shared_ptr<VectorSiteContainer> SiteContainerBuilder::construct_alignment_from_strings(vector<pair<string, string>> headers_sequences, string datatype)
@@ -26,6 +29,18 @@ shared_ptr<VectorSiteContainer> SiteContainerBuilder::construct_alignment_from_s
         throw Exception(datatype);
     }
 }
+
+shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_alignment(string filename,
+        string file_format, bool interleaved)
+                throw (Exception) {
+    try {
+        return read_alignment(filename, file_format, "nt", interleaved);
+    }
+    catch (AlphabetException &e) {
+        return read_alignment(filename, file_format, "aa", interleaved);
+    }
+}
+
 
 shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_alignment(string filename,
         string file_format, string datatype, bool interleaved)
@@ -59,6 +74,20 @@ shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_alignment(string file
     }
 }
 
+shared_ptr<VectorSiteContainer> SiteContainerBuilder::construct_sorted_alignment(VectorSiteContainer *sites,
+        bool ascending) {
+    VectorSequenceContainer *tmp = new VectorSequenceContainer(sites->getAlphabet());
+    vector<string> names = sites->getSequencesNames();
+    if (ascending) sort(names.begin(), names.end());
+    else sort(names.begin(), names.end(), greater<string>());
+    for (string &name : names) {
+        tmp->addSequence(sites->getSequence(name));
+    }
+    auto ret = make_shared<VectorSiteContainer>(*tmp);
+    delete tmp;
+    return ret;
+}
+
 bool SiteContainerBuilder::asking_for_fasta(string file_format) {
     return (file_format == "fasta" || file_format == "fas" || file_format == ".fasta" || file_format == ".fas");
 }
@@ -81,6 +110,10 @@ shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_fasta_dna_file(
     SequenceContainer* alignment = reader.readSequences(filename, &AlphabetTools::DNA_ALPHABET);
     shared_ptr<VectorSiteContainer> sequences(new VectorSiteContainer(*alignment));
     delete alignment;
+    if (sequences->getNumberOfSequences() == 0) {
+        sequences.reset();
+        throw Exception("The alignment is empty - did you specify the right file format?");
+    }
     return sequences;
 }
 
@@ -90,6 +123,10 @@ shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_fasta_protein_file(
     SequenceContainer* alignment = reader.readSequences(filename, &AlphabetTools::PROTEIN_ALPHABET);
     shared_ptr<VectorSiteContainer> sequences(new VectorSiteContainer(*alignment));
     delete alignment;
+    if (sequences->getNumberOfSequences() == 0) {
+        sequences.reset();
+        throw Exception("The alignment is empty - did you specify the right file format?");
+    }
     return sequences;
 }
 
@@ -99,6 +136,10 @@ shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_phylip_dna_file(
     SequenceContainer* alignment = reader.readSequences(filename, &AlphabetTools::DNA_ALPHABET);
     shared_ptr<VectorSiteContainer> sequences(new VectorSiteContainer(*alignment));
     delete alignment;
+    if (sequences->getNumberOfSequences() == 0) {
+        sequences.reset();
+        throw Exception("The alignment is empty - did you specify the right file format?");
+    }
     return sequences;
 }
 
@@ -109,6 +150,10 @@ shared_ptr<VectorSiteContainer> SiteContainerBuilder::read_phylip_protein_file(
     SequenceContainer* alignment = reader.readSequences(filename, &AlphabetTools::PROTEIN_ALPHABET);
     shared_ptr<VectorSiteContainer> sequences(new VectorSiteContainer(*alignment));
     delete alignment;
+    if (sequences->getNumberOfSequences() == 0) {
+        sequences.reset();
+        throw Exception("The alignment is empty - did you specify the right file format?");
+    }
     return sequences;
 }
 

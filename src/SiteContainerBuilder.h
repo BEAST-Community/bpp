@@ -21,8 +21,10 @@ class SiteContainerBuilder {
 public:
     SiteContainerBuilder();
     virtual ~SiteContainerBuilder();
+    static shared_ptr<VectorSiteContainer> read_alignment(string filename, string file_format, bool interleaved=true) throw (Exception);
     static shared_ptr<VectorSiteContainer> read_alignment(string filename, string file_format, string datatype, bool interleaved=true) throw (Exception);
     static shared_ptr<VectorSiteContainer> construct_alignment_from_strings(vector<pair<string, string>> headers_sequences, string datatype) throw (Exception);
+    static shared_ptr<VectorSiteContainer> construct_sorted_alignment(VectorSiteContainer *sites, bool ascending);
 private:
     static bool asking_for_fasta(string file_format);
     static bool asking_for_phylip(string file_format);

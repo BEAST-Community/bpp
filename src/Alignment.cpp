@@ -51,19 +51,21 @@ Alignment::Alignment() {}
 
 Alignment::Alignment(vector<pair<string, string>> headers_sequences, string datatype) {
     sequences = SiteContainerBuilder::construct_alignment_from_strings(headers_sequences, datatype);
-    _set_datatype();
+}
+
+Alignment::Alignment(string filename, string file_format, bool interleaved) {
+    read_alignment(filename, file_format, interleaved);
 }
 
 Alignment::Alignment(string filename, string file_format, string datatype, bool interleaved) {
     read_alignment(filename, file_format, datatype, interleaved);
-    _set_datatype();
 }
 
 Alignment::Alignment(string filename, string file_format, string datatype, string model_name, bool interleaved) {
     read_alignment(filename, file_format, datatype, interleaved);
     set_gamma_rate_model();
     try {
-        _check_compatible_model(datatype, model_name);
+        _check_compatible_model(model_name);
         set_substitution_model(model_name);
     }
     catch (Exception& e) {
@@ -71,11 +73,21 @@ Alignment::Alignment(string filename, string file_format, string datatype, strin
     }
 }
 
-void Alignment::read_alignment(string filename, string file_format, string datatype, bool interleaved) {
-    sequences = SiteContainerBuilder::read_alignment(filename, file_format, datatype, interleaved);
-    _set_datatype();
+void Alignment::read_alignment(string filename, string file_format, bool interleaved) {
+    sequences = SiteContainerBuilder::read_alignment(filename, file_format, interleaved);
     _clear_distances();
     _clear_likelihood();
+}
+
+void Alignment::read_alignment(string filename, string file_format, string datatype, bool interleaved) {
+    sequences = SiteContainerBuilder::read_alignment(filename, file_format, datatype, interleaved);
+    _clear_distances();
+    _clear_likelihood();
+}
+
+void Alignment::sort_alignment(bool ascending) {
+    if (!sequences) throw Exception("No sequences to sort");
+    sequences = SiteContainerBuilder::construct_sorted_alignment(sequences.get(), ascending);
 }
 
 void Alignment::write_alignment(string filename, string file_format, bool interleaved) {
@@ -92,10 +104,8 @@ void Alignment::write_alignment(string filename, string file_format, bool interl
 }
 
 void Alignment::set_substitution_model(string model_name) {
-    string datatype = is_protein() ? "protein" : "dna";
-    _check_compatible_model(datatype, model_name);
+    _check_compatible_model(model_name);
     model = ModelFactory::create(model_name);
-    _model = model_name;
     _clear_likelihood();
 }
 
@@ -161,8 +171,7 @@ void Alignment::set_namespace(string name) {
     if ((!rates) | (!model)) throw Exception("Substitution and rate models need to be fully set before adding a namespace");
     rates->setNamespace(name);
     model->setNamespace(name);
-    _name = name;
-    _clear_likelihood();
+    //_clear_likelihood();
 }
 
 double Alignment::get_alpha() {
@@ -210,10 +219,12 @@ vector<double> Alignment::get_rates(string order) {
 }
 
 vector<double> Alignment::get_frequencies() {
+    if (!model) throw Exception("Substitution model not set");
     return model->getFrequencies();
 }
 
 vector<double> Alignment::get_rate_model_categories() {
+    if (!rates) throw Exception("Rate model not set");
     return rates->getCategories();
 }
 
@@ -232,6 +243,15 @@ size_t Alignment::get_number_of_sites() {
     return sequences->getNumberOfSites();
 }
 
+size_t Alignment::get_number_of_distinct_sites() {
+    if (!sequences) throw Exception("This instance has no sequences");
+    SitePatterns sp{sequences.get()};
+    auto unique_sites = sp.getSites();
+    size_t distinct_sites = unique_sites->getNumberOfSites();
+    delete unique_sites;
+    return distinct_sites;
+}
+
 vector<vector<double>> Alignment::get_exchangeabilities() {
     if(!model) throw Exception("No model has been set.");
     RowMatrix<double> exch = model->getExchangeabilityMatrix();
@@ -247,8 +267,8 @@ vector<vector<double>> Alignment::get_exchangeabilities() {
 }
 
 string Alignment::get_substitution_model() {
-    if (_model.empty()) throw Exception("No model name is set");
-    return _model;
+    if (!model) throw Exception("No model has been set");
+    return model->getName();
 }
 
 string Alignment::get_namespace() {
@@ -256,18 +276,23 @@ string Alignment::get_namespace() {
     return _name;
 }
 
-size_t Alignment::get_number_of_informative_sites(bool exclude_gaps) {
+vector<string> Alignment::get_informative_sites(bool exclude_gaps) {
+    if (!sequences) throw Exception("No sequences present.");
+    vector<string> inf_sites;
     ConstSiteIterator* si = nullptr;
     if (exclude_gaps) si = new CompleteSiteContainerIterator(*sequences);
     else si = new SimpleSiteContainerIterator(*sequences);
-    size_t S = 0;
     const Site* site = 0;
     while (si->hasMoreSites()) {
         site = si->nextSite();
-        if (SiteTools::isParsimonyInformativeSite(*site)) S++;
+        if (SiteTools::isParsimonyInformativeSite(*site)) inf_sites.push_back(site->toString());
     }
     delete si;
-    return S;
+    return inf_sites;
+}
+
+size_t Alignment::get_number_of_informative_sites(bool exclude_gaps) {
+    return get_informative_sites(exclude_gaps).size();
 }
 
 size_t Alignment::get_number_of_free_parameters() {
@@ -292,11 +317,11 @@ void Alignment::_print_params() {
 }
 
 bool Alignment::is_dna() {
-    return dna && !protein;
+    return _get_datatype() == "DNA alphabet";
 }
 
 bool Alignment::is_protein() {
-    return protein && !dna;
+    return _get_datatype() == "Proteic alphabet";
 }
 
 // Distance
@@ -394,9 +419,14 @@ string Alignment::get_bionj_tree(vector<vector<double>> matrix) {
 vector<vector<double>> Alignment::get_distances() {
     if(!distances) throw Exception("No distances have been calculated yet");
     vector<vector<double>> vec;
+    vector<string> names = sequences->getSequencesNames();
     size_t nrow = distances->getNumberOfRows();
     for (size_t i = 0; i < nrow; ++i) {
-        vec.push_back(distances->row(i));
+        vector<double> row;
+        for (size_t j = 0; j < nrow; ++j) {
+            row.push_back((*distances)(names[i], names[j]));
+        }
+        vec.push_back(row);
     }
     return vec;
 }
@@ -404,9 +434,14 @@ vector<vector<double>> Alignment::get_distances() {
 vector<vector<double>> Alignment::get_variances() {
     if(!variances) throw Exception("No distances have been calculated yet");
     vector<vector<double>> vec;
+    vector<string> names = sequences->getSequencesNames();
     size_t nrow = variances->getNumberOfRows();
     for (size_t i = 0; i < nrow; ++i) {
-        vec.push_back(variances->row(i));
+        vector<double> row;
+        for (size_t j = 0; j < nrow; ++j) {
+            row.push_back((*variances)(names[i], names[j]));
+        }
+        vec.push_back(row);
     }
     return vec;
 }
@@ -414,12 +449,13 @@ vector<vector<double>> Alignment::get_variances() {
 vector<vector<double>> Alignment::get_distance_variance_matrix() {
     if(!variances || !distances) throw Exception("No distances have been calculated yet");
     vector<vector<double>> vec;
+    vector<string> names = sequences->getSequencesNames();
     size_t nrow = variances->getNumberOfRows();
     for (size_t i = 0; i < nrow; ++i) {
         vector<double> row;
         for (size_t j = 0; j < nrow; ++j) {
-            if (j < i) row.push_back((*variances)(i, j));
-            else row.push_back((*distances)(i, j));
+            if (j < i) row.push_back((*variances)(names[i], names[j]));
+            else row.push_back((*distances)(names[i], names[j]));
         }
         vec.push_back(row);
     }
@@ -599,43 +635,42 @@ vector<pair<string, string>> Alignment::simulate(size_t nsites) {
     return get_simulated_sequences();
 }
 
+vector<pair<string, string>> Alignment::get_sequences() {
+    if (!sequences) throw Exception("No sequences to return");
+    return _get_sequences(sequences.get());
+}
+
 vector<pair<string, string>> Alignment::get_simulated_sequences() {
-    vector<pair<string, string>> ret;
-    if (!simulated_sequences) {
-        cerr << "No sequences exist yet" << endl;
-        throw exception();
-    }
-    for (size_t i = 0; i < simulated_sequences->getNumberOfSequences(); ++i) {
-        BasicSequence seq = simulated_sequences->getSequence(i);
-        ret.push_back(make_pair(seq.getName(), seq.toString()));
-    }
+    if (!simulated_sequences) throw Exception("No simulated sequences to return");
+    return _get_sequences(simulated_sequences.get());
+}
+
+// Bootstrap
+vector<pair<string, string>> Alignment::get_bootstrapped_sequences() {
+    if (!sequences) throw Exception("No sequences to bootstrap.");
+    VectorSiteContainer *tmp = SiteContainerTools::bootstrapSites(*sequences);
+    auto ret = _get_sequences(tmp);
+    delete tmp;
     return ret;
 }
 
 // Private methods
-void Alignment::_set_dna() {
-    dna = true;
-    protein = false;
-}
-
-void Alignment::_set_protein() {
-    dna = false;
-    protein = true;
-}
-
-void Alignment::_set_datatype() {
+string Alignment::_get_datatype() {
     if (!sequences) throw Exception("This instance has no sequences");
-    string type = sequences->getAlphabet()->getAlphabetType();
-    if (type == "DNA alphabet") {
-        _set_dna();
+    return sequences->getAlphabet()->getAlphabetType();
+}
+
+vector<pair<string, string>> Alignment::_get_sequences(VectorSiteContainer *seqs) {
+    vector<pair<string, string>> ret;
+    if (!seqs) {
+        cerr << "Empty sequences pointer" << endl;
+        throw exception();
     }
-    else if (type == "Proteic alphabet") {
-        _set_protein();
+    for (size_t i = 0; i < seqs->getNumberOfSequences(); ++i) {
+        BasicSequence seq = seqs->getSequence(i);
+        ret.push_back(make_pair(seq.getName(), seq.toString()));
     }
-    else {
-        cerr << "Type = " << type << endl;
-        throw Exception("Unrecognised data type");
-    }
+    return ret;
 }
 
 void Alignment::_write_fasta(shared_ptr<VectorSiteContainer> seqs, string filename) {
@@ -657,15 +692,18 @@ map<int, double> Alignment::_vector_to_map(vector<double> vec) {
     return m;
 }
 
-void Alignment::_check_compatible_model(string datatype, string model) {
+void Alignment::_check_compatible_model(string model) {
     bool incompat = false;
-    if (((datatype == "dna") | (datatype == "nt")) & ((model == "JTT92") | (model == "JCprot") | (model == "DSO78") | (model == "WAG01") | (model == "LG08"))) {
+    if (is_dna() & ((model == "JTT92") | (model == "JCprot") | (model == "DSO78") | (model == "WAG01") | (model == "LG08"))) {
         incompat = true;
     }
-    else if (((datatype == "aa") | (datatype == "protein")) & ((model == "JCnuc") | (model == "JC69") | (model == "K80") | (model == "HKY85") | (model == "TN93" ) | (model == "GTR") | (model == "T92") | (model == "F84"))) {
+    else if (is_protein() & ((model == "JCnuc") | (model == "JC69") | (model == "K80") | (model == "HKY85") | (model == "TN93" ) | (model == "GTR") | (model == "T92") | (model == "F84"))) {
         incompat = true;
     }
     if (incompat) {
+        string datatype;
+        if (is_dna()) datatype = "dna";
+        else datatype = "protein";
         cerr << "Incompatible model (" << model << ") and datatype (" << datatype << ")" << endl;
         throw Exception("Incompatible model and datatype error");
     }

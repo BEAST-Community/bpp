@@ -12,6 +12,7 @@ from cython.operator cimport dereference as deref, preincrement as inc, address 
 from bpp_h cimport Alignment as _Alignment
 cdef extern from "autowrap_tools.hpp":
     char * _cast_const_away(char *) 
+from numpy import array
 
 cdef class Alignment:
 
@@ -58,6 +59,11 @@ cdef class Alignment:
     def get_variances(self):
         _r = self.inst.get().get_variances()
         cdef list py_result = _r
+        return array(py_result)
+    
+    def get_sequences(self):
+        _r = self.inst.get().get_sequences()
+        cdef list py_result = _r
         return py_result
     
     def get_exchangeabilities(self):
@@ -75,6 +81,11 @@ cdef class Alignment:
     
     def get_number_of_sites(self):
         cdef size_t _r = self.inst.get().get_number_of_sites()
+        py_result = <size_t>_r
+        return py_result
+
+    def get_number_of_distinct_sites(self):
+        cdef size_t _r = self.inst.get().get_number_of_distinct_sites()
         py_result = <size_t>_r
         return py_result
     
@@ -98,7 +109,17 @@ cdef class Alignment:
             return self._initialise_likelihood_1(*args)
         else:
                raise Exception('can not handle type of %s' % (args,))
-    
+
+    def read_alignment(self, bytes filename , bytes file_format ,  interleaved ):
+        assert isinstance(filename, bytes), 'arg filename wrong type'
+        assert isinstance(file_format, bytes), 'arg file_format wrong type'
+        assert isinstance(interleaved, (int, long)), 'arg interleaved wrong type'
+
+
+
+
+        self.inst.get().read_alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<bool>interleaved))
+
     def read_alignment(self, bytes filename , bytes file_format , bytes datatype ,  interleaved ):
         assert isinstance(filename, bytes), 'arg filename wrong type'
         assert isinstance(file_format, bytes), 'arg file_format wrong type'
@@ -118,6 +139,18 @@ cdef class Alignment:
     def set_constant_rate_model(self):
         self.inst.get().set_constant_rate_model()
     
+    def sort_alignment(self,  ascending ):
+        assert isinstance(ascending, (int, long)), 'arg ascending wrong type'
+    
+        self.inst.get().sort_alignment((<bool>ascending))
+
+    def get_informative_sites(self,  exclude_gaps ):
+        assert isinstance(exclude_gaps, (int, long)), 'arg exclude_gaps wrong type'
+
+        _r = self.inst.get().get_informative_sites(exclude_gaps)
+        cdef list py_result = _r
+        return py_result
+
     def get_number_of_informative_sites(self,  exclude_gaps ):
         assert isinstance(exclude_gaps, (int, long)), 'arg exclude_gaps wrong type'
     
@@ -168,7 +201,7 @@ cdef class Alignment:
     def get_distances(self):
         _r = self.inst.get().get_distances()
         cdef list py_result = _r
-        return py_result
+        return array(py_result)
     
     def get_tree(self):
         cdef libcpp_string _r = self.inst.get().get_tree()
@@ -178,7 +211,7 @@ cdef class Alignment:
     def get_distance_variance_matrix(self):
         _r = self.inst.get().get_distance_variance_matrix()
         cdef list py_result = _r
-        return py_result
+        return array(py_result)
     
     def _simulate_0(self,  nsites , bytes tree ):
         assert isinstance(nsites, (int, long)), 'arg nsites wrong type'
@@ -213,6 +246,11 @@ cdef class Alignment:
         assert isinstance(model_name, bytes), 'arg model_name wrong type'
     
         self.inst.get().set_substitution_model((<libcpp_string>model_name))
+    
+    def get_bootstrapped_sequences(self):
+        _r = self.inst.get().get_bootstrapped_sequences()
+        cdef list py_result = _r
+        return py_result
     
     def get_alpha(self):
         cdef double _r = self.inst.get().get_alpha()
@@ -295,50 +333,61 @@ cdef class Alignment:
         _r = self.inst.get().get_frequencies()
         cdef list py_result = _r
         return py_result
-    
+
     def _init_0(self):
         self.inst = shared_ptr[_Alignment](new _Alignment())
-    
+
     def _init_1(self, list in_0 , bytes datatype ):
-        assert isinstance(in_0, list) and all(isinstance(elemt_rec, (list, tuple)) and len(elemt_rec) == 2 and isinstance(elemt_rec[0], bytes) and isinstance(elemt_rec[1], bytes) for elemt_rec in in_0), 'arg in_0 wrong type'
+        assert isinstance(in_0, list) and all(isinstance(elemt_rec, (tuple, list)) and len(elemt_rec) == 2 and isinstance(elemt_rec[0], bytes) and isinstance(elemt_rec[1], bytes) for elemt_rec in in_0), 'arg in_0 wrong type'
         assert isinstance(datatype, bytes), 'arg datatype wrong type'
         cdef libcpp_vector[libcpp_pair[libcpp_string,libcpp_string]] v0 = in_0
-    
+
         self.inst = shared_ptr[_Alignment](new _Alignment(v0, (<libcpp_string>datatype)))
-        
-    
-    def _init_2(self, bytes filename , bytes file_format , bytes datatype ,  interleaved ):
+
+
+    def _init_2(self, bytes filename , bytes file_format ,  interleaved ):
+        assert isinstance(filename, bytes), 'arg filename wrong type'
+        assert isinstance(file_format, bytes), 'arg file_format wrong type'
+        assert isinstance(interleaved, (int, long)), 'arg interleaved wrong type'
+
+
+
+        self.inst = shared_ptr[_Alignment](new _Alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<bool>interleaved)))
+
+    def _init_3(self, bytes filename , bytes file_format , bytes datatype ,  interleaved ):
         assert isinstance(filename, bytes), 'arg filename wrong type'
         assert isinstance(file_format, bytes), 'arg file_format wrong type'
         assert isinstance(datatype, bytes), 'arg datatype wrong type'
         assert isinstance(interleaved, (int, long)), 'arg interleaved wrong type'
-    
-    
-    
-    
+
+
+
+
         self.inst = shared_ptr[_Alignment](new _Alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<libcpp_string>datatype), (<bool>interleaved)))
-    
-    def _init_3(self, bytes filename , bytes file_format , bytes datatype , bytes model_name ,  interleaved ):
+
+    def _init_4(self, bytes filename , bytes file_format , bytes datatype , bytes model_name ,  interleaved ):
         assert isinstance(filename, bytes), 'arg filename wrong type'
         assert isinstance(file_format, bytes), 'arg file_format wrong type'
         assert isinstance(datatype, bytes), 'arg datatype wrong type'
         assert isinstance(model_name, bytes), 'arg model_name wrong type'
         assert isinstance(interleaved, (int, long)), 'arg interleaved wrong type'
-    
-    
-    
-    
-    
+
+
+
+
+
         self.inst = shared_ptr[_Alignment](new _Alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<libcpp_string>datatype), (<libcpp_string>model_name), (<bool>interleaved)))
-    
+
     def __init__(self, *args):
         if not args:
-             self._init_0(*args)
-        elif (len(args)==2) and (isinstance(args[0], list) and all(isinstance(elemt_rec, (list, tuple)) and len(elemt_rec) == 2 and isinstance(elemt_rec[0], bytes) and isinstance(elemt_rec[1], bytes) for elemt_rec in args[0])) and (isinstance(args[1], bytes)):
-             self._init_1(*args)
+            self._init_0(*args)
+        elif (len(args)==2) and (isinstance(args[0], list) and all(isinstance(elemt_rec, (tuple, list)) and len(elemt_rec) == 2 and isinstance(elemt_rec[0], bytes) and isinstance(elemt_rec[1], bytes) for elemt_rec in args[0])) and (isinstance(args[1], bytes)):
+            self._init_1(*args)
+        elif (len(args)==3) and (isinstance(args[0], bytes)) and (isinstance(args[1], bytes)) and (isinstance(args[2], (int, long))):
+            self._init_2(*args)
         elif (len(args)==4) and (isinstance(args[0], bytes)) and (isinstance(args[1], bytes)) and (isinstance(args[2], bytes)) and (isinstance(args[3], (int, long))):
-             self._init_2(*args)
+            self._init_3(*args)
         elif (len(args)==5) and (isinstance(args[0], bytes)) and (isinstance(args[1], bytes)) and (isinstance(args[2], bytes)) and (isinstance(args[3], bytes)) and (isinstance(args[4], (int, long))):
-             self._init_3(*args)
+            self._init_4(*args)
         else:
-               raise Exception('can not handle type of %s' % (args,)) 
+            raise Exception('can not handle type of %s' % (args,))

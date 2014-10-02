@@ -6,9 +6,12 @@ cdef extern from "src/Alignment.h":
     cdef cppclass Alignment:
         Alignment() except +
         Alignment(libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]], libcpp_string datatype) except +
+        Alignment(libcpp_string filename, libcpp_string file_format, bool interleaved) except +
         Alignment(libcpp_string filename, libcpp_string file_format, libcpp_string datatype, bool interleaved) except +
         Alignment(libcpp_string filename, libcpp_string file_format, libcpp_string datatype, libcpp_string model_name, bool interleaved) except +
+        void read_alignment(libcpp_string filename, libcpp_string file_format, bool interleaved) except +
         void read_alignment(libcpp_string filename, libcpp_string file_format, libcpp_string datatype, bool interleaved) except +
+        void sort_alignment(bool ascending) except +
         void write_alignment(libcpp_string filename, libcpp_string file_format, bool interleaved) except +
         void set_substitution_model(libcpp_string model_name) except +
         void set_gamma_rate_model(size_t ncat, double alpha) except +
@@ -18,6 +21,7 @@ cdef extern from "src/Alignment.h":
         void set_rates(libcpp_vector[double], libcpp_string order) except +
         void set_frequencies(libcpp_vector[double]) except +
         void set_namespace(libcpp_string name) except +
+        libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]] get_sequences() except +
         double get_alpha() except +
         size_t get_number_of_gamma_categories() except +
         libcpp_vector[double] get_rates(libcpp_string order) except +
@@ -29,7 +33,9 @@ cdef extern from "src/Alignment.h":
         libcpp_string get_substitution_model() except +
         size_t get_number_of_sequences() except +
         size_t get_number_of_sites() except +
+        libcpp_vector[libcpp_string] get_informative_sites(bool exclude_gaps) except +
         size_t get_number_of_informative_sites(bool exclude_gaps) except +
+        size_t get_number_of_distinct_sites() except +
         size_t get_number_of_free_parameters() except +
         bool is_dna() except +
         bool is_protein() except +
@@ -59,3 +65,6 @@ cdef extern from "src/Alignment.h":
         libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]] simulate(size_t nsites, libcpp_string tree) except +
         libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]] simulate(size_t nsites) except +
         libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]] get_simulated_sequences() except +
+
+        # Bootstrap
+        libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]] get_bootstrapped_sequences() except +

@@ -27,9 +27,12 @@ class Alignment {
     public :
         Alignment();
         Alignment(vector<pair<string, string>> headers_sequences, string datatype);
+        Alignment(string filename, string file_format, bool interleaved=true);
         Alignment(string filename, string file_format, string datatype, bool interleaved=true);
         Alignment(string filename, string file_format, string datatype, string model_name, bool interleaved=true);
+        void read_alignment(string filename, string file_format, bool interleaved);
         void read_alignment(string filename, string file_format, string datatype, bool interleaved=true);
+        void sort_alignment(bool ascending=true);
         void write_alignment(string filename, string file_format, bool interleaved=true);
         void set_substitution_model(string model_name);
         void set_gamma_rate_model(size_t ncat=4, double alpha=1.0);
@@ -39,6 +42,7 @@ class Alignment {
         void set_rates(vector<double>, string order="acgt");
         void set_frequencies(vector<double>);
         void set_namespace(string name);
+        vector<pair<string, string>> get_sequences();
         double get_alpha();
         size_t get_number_of_gamma_categories();
         vector<double> get_rates(string order);
@@ -51,7 +55,9 @@ class Alignment {
         string get_substitution_model();
         vector<vector<double>> get_exchangeabilities();
         string get_namespace();
+        vector<string> get_informative_sites(bool exclude_gaps);
         size_t get_number_of_informative_sites(bool exclude_gaps);
+        size_t get_number_of_distinct_sites();
         bool is_dna();
         bool is_protein();
         void _print_params();
@@ -81,14 +87,16 @@ class Alignment {
         vector<pair<string, string>> simulate(size_t nsites);
         vector<pair<string, string>> get_simulated_sequences();
 
+        // Bootstrap
+        vector<pair<string, string>> get_bootstrapped_sequences();
+
     private :
-        void _set_dna();
-        void _set_protein();
-        void _set_datatype();
+        string _get_datatype();
+        vector<pair<string, string>> _get_sequences(VectorSiteContainer *seqs);
         void _write_fasta(shared_ptr<VectorSiteContainer> seqs, string filename);
         void _write_phylip(shared_ptr<VectorSiteContainer> seqs, string filename, bool interleaved=true);
         map<int, double> _vector_to_map(vector<double>);
-        void _check_compatible_model(string datatype, string model);
+        void _check_compatible_model(string model);
         void _clear_distances();
         void _clear_likelihood();
         bool _is_file(string filename);
@@ -104,9 +112,6 @@ class Alignment {
         shared_ptr<DistanceMatrix> variances = nullptr;
         shared_ptr<NNIHomogeneousTreeLikelihood> likelihood = nullptr;
         shared_ptr<HomogeneousSequenceSimulator> simulator = nullptr;
-        bool dna{false};
-        bool protein{false};
-        string _model;
         string _name;
 };
 
