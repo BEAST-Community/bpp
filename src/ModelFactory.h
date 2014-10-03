@@ -58,6 +58,7 @@ public:
     virtual ~ModelFactory();
     static shared_ptr<SubstitutionModel> create(string model_name) throw (Exception);
     static shared_ptr<SubstitutionModel> create(Model model, bool parameterise_freqs) throw (Exception);
+    static shared_ptr<SubstitutionModel> create(string model_name, vector<double> freqs) throw (Exception);
 };
 
 #endif /* MODELFACTORY_H_ */

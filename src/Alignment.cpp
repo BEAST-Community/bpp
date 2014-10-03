@@ -15,6 +15,9 @@
 #include <Bpp/Seq/Container/SiteContainerIterator.h>
 #include <Bpp/Seq/SiteTools.h>
 #include <Bpp/Seq/Container/CompressedVectorSiteContainer.h>
+#include <Bpp/Phyl/Model/FrequenciesSet/NucleotideFrequenciesSet.h>
+#include <Bpp/Phyl/Model/FrequenciesSet/ProteinFrequenciesSet.h>
+#include <Bpp/Seq/Alphabet/AlphabetTools.h>
 #include <Bpp/Seq/SymbolListTools.h>
 #include <Bpp/Phyl/Distance/DistanceEstimation.h>
 #include <Bpp/Phyl/Distance/BioNJ.h>
@@ -39,13 +42,19 @@ double DISTMAX = 10000;
 
 size_t getNumberOfDistinctPositionsWithoutGap(const SymbolList& l1, const SymbolList& l2) {
       if (l1.getAlphabet()->getAlphabetType() != l2.getAlphabet()->getAlphabetType()) throw AlphabetMismatchException("SymbolListTools::getNumberOfDistinctPositions.", l1.getAlphabet(), l2.getAlphabet());
+      const Alphabet* alpha = l1.getAlphabet();
+      int gapCode = alpha->getGapCharacterCode();
       size_t n = min(l1.size(), l2.size());
       size_t count = 0;
       for (size_t i = 0; i < n; i++) {
-          if (l1[i] != -1 && l2[i] != -1 && l1[i] != l2[i]) count++;
+          int x = l1[i];
+          int y = l2[i];
+          if (alpha->isUnresolved(x)) x = gapCode;
+          if (alpha->isUnresolved(x)) y = gapCode;
+          if (x != gapCode && y != gapCode && x != y) count++;
       }
       return count;
-    }
+}
 
 Alignment::Alignment() {}
 
@@ -148,6 +157,8 @@ void Alignment::set_number_of_gamma_categories(size_t ncat) {
 }
 
 void Alignment::set_rates(vector<double> rates, string order) {
+    if (!model) throw Exception("Model not set");
+    if (!is_dna() || model->getName() != "GTR") throw Exception("Setting rates is only implemented for DNA GTR model.");
     if (is_dna()) {
         if (order == "acgt" || order == "ACGT") {
             double normaliser = rates[1];
@@ -170,9 +181,14 @@ void Alignment::set_rates(vector<double> rates, string order) {
 }
 
 void Alignment::set_frequencies(vector<double> freqs) {
+    if (!model) throw Exception("Model not set");
     size_t reqd = is_dna() ? 4 : 20;
     if (freqs.size() != reqd) throw Exception("Frequencies vector is the wrong length (dna: 4; aa: 20)");
     map<int, double> m = _vector_to_map(freqs);
+    if (is_protein()) {
+        cout << "setting prot freqset" << endl;
+        model = ModelFactory::create(model->getName(), freqs);
+    }
     model->setFreq(m);
     _clear_likelihood();
 }
@@ -284,6 +300,17 @@ string Alignment::get_substitution_model() {
 string Alignment::get_namespace() {
     if (_name.empty()) throw Exception("No namespace is set");
     return _name;
+}
+
+vector<string> Alignment::get_sites() {
+    if (!sequences) throw Exception("No sequences present.");
+    vector<string> sites;
+    auto si = new SimpleSiteContainerIterator(*sequences);
+    while(si->hasMoreSites()) {
+        sites.push_back(si->nextSite()->toString());
+    }
+    delete si;
+    return sites;
 }
 
 vector<string> Alignment::get_informative_sites(bool exclude_gaps) {
@@ -553,8 +580,7 @@ double Alignment::get_likelihood() {
 
 string Alignment::get_tree() {
     if (!likelihood) {
-        cerr << "Likelihood calculator not set - call initialise_likelihood" << endl;
-        throw Exception("Uninitialised likelihood error");
+        throw Exception("Likelihood calculator not set - call initialise_likelihood");
     }
     auto *tree = likelihood->getTree().clone();
     stringstream ss;

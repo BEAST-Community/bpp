@@ -33,6 +33,7 @@ cdef extern from "src/Alignment.h":
         libcpp_string get_namespace() except +
         libcpp_string get_substitution_model() except +
         size_t get_number_of_sequences() except +
+        libcpp_vector[libcpp_string] get_sites() except +
         size_t get_number_of_sites() except +
         libcpp_vector[libcpp_string] get_informative_sites(bool exclude_gaps) except +
         size_t get_number_of_informative_sites(bool exclude_gaps) except +

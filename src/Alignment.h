@@ -51,6 +51,7 @@ class Alignment {
         vector<double> get_frequencies();
         vector<string> get_names();
         size_t get_number_of_sequences();
+        vector<string> get_sites();
         size_t get_number_of_sites();
         size_t get_number_of_free_parameters();
         string get_substitution_model();

@@ -126,3 +126,27 @@ shared_ptr<SubstitutionModel> ModelFactory::create(Model model, bool parameteris
         throw Exception("ModelFactory::create() - unknown model. ");
     }
 }
+
+shared_ptr<SubstitutionModel> ModelFactory::create(string model_name, vector<double> freqs) throw (Exception) {
+    Model model = string_to_model(model_name);
+    FullProteinFrequenciesSet *freqs_set = nullptr;
+    switch (model) {
+    case Model::JTT92:
+        freqs_set = new FullProteinFrequenciesSet(&AlphabetTools::PROTEIN_ALPHABET, freqs);
+        return make_shared<JTT92>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set, false);
+    case Model::JCprot:
+        freqs_set = new FullProteinFrequenciesSet(&AlphabetTools::PROTEIN_ALPHABET, freqs);
+        return make_shared<JCprot>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set, false);
+    case Model::DSO78:
+        freqs_set = new FullProteinFrequenciesSet(&AlphabetTools::PROTEIN_ALPHABET, freqs);
+        return make_shared<DSO78>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set, false);
+    case Model::WAG01:
+        freqs_set = new FullProteinFrequenciesSet(&AlphabetTools::PROTEIN_ALPHABET, freqs);
+        return make_shared<WAG01>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set, false);
+    case Model::LG08:
+        freqs_set = new FullProteinFrequenciesSet(&AlphabetTools::PROTEIN_ALPHABET, freqs);
+        return make_shared<LG08>(&AlphabetTools::PROTEIN_ALPHABET, freqs_set, false);
+    default:
+        throw Exception("ModelFactory::create() - unknown model. ");
+    }
+}

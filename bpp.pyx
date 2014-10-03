@@ -71,7 +71,7 @@ cdef class Alignment:
     def get_exchangeabilities(self):
         _r = self.inst.get().get_exchangeabilities()
         cdef list py_result = _r
-        return py_result
+        return array(py_result)
     
     def set_rates(self, list in_0 , bytes order ):
         assert isinstance(in_0, list) and all(isinstance(elemt_rec, float) for elemt_rec in in_0), 'arg in_0 wrong type'
@@ -145,6 +145,11 @@ cdef class Alignment:
         assert isinstance(ascending, (int, long)), 'arg ascending wrong type'
     
         self.inst.get().sort_alignment((<bool>ascending))
+
+    def get_sites(self):
+        _r = self.inst.get().get_sites()
+        cdef list py_result = _r
+        return py_result
 
     def get_informative_sites(self,  exclude_gaps ):
         assert isinstance(exclude_gaps, (int, long)), 'arg exclude_gaps wrong type'
