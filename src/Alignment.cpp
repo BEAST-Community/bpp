@@ -37,6 +37,7 @@
 using namespace bpp;
 using namespace std;
 
+double DISTMIN = 0.000001;
 double VARMIN = 0.000001;
 double DISTMAX = 10000;
 
@@ -186,7 +187,6 @@ void Alignment::set_frequencies(vector<double> freqs) {
     if (freqs.size() != reqd) throw Exception("Frequencies vector is the wrong length (dna: 4; aa: 20)");
     map<int, double> m = _vector_to_map(freqs);
     if (is_protein()) {
-        cout << "setting prot freqset" << endl;
         model = ModelFactory::create(model->getName(), freqs);
     }
     model->setFreq(m);
@@ -424,34 +424,45 @@ void Alignment::fast_compute_distances() {
 }
 
 void Alignment::set_distance_matrix(vector<vector<double>> matrix) {
-    distances = _create_distance_matrix(matrix);
+    try {
+        distances = _create_distance_matrix(matrix);
+    }
+    catch (Exception &e) {
+        cout << e.what() << endl;
+        throw Exception("Error setting distance matrix");
+    }
+}
+
+void Alignment::chkdst() {
+    if (!distances) throw Exception("No distances have been calculated yet");
+    cout << "Dims = (" << distances->getNumberOfRows() << ", " << distances->getNumberOfColumns() << ")" << endl;
+    for (size_t i=0; i < distances->getNumberOfRows(); ++i) {
+        for (size_t j=0; j < distances->getNumberOfColumns(); ++j) {
+            cout << (*distances)(i,j) << " ";
+        }
+        cout <<endl;
+    }
+    cout << endl;
 }
 
 string Alignment::get_bionj_tree() {
     if (!distances) throw Exception("No distances have been calculated yet");
-    BioNJ bionj(*distances, false, true, false); // rooted=false, positiveLengths=true, verbose=false
-    auto njtree = bionj.getTree();
-    stringstream ss;
-    Newick treeWriter;
-    treeWriter.write(*njtree, ss);
-    delete njtree;
-    string s{ss.str()};
-    s.erase(s.find_last_not_of(" \n\r\t")+1);
-    return s;
+    if (!variances) throw Exception("No variances have been calculated yet");
+    return computeTree();
 }
 
-string Alignment::get_bionj_tree(vector<vector<double>> matrix) {
-    auto dm = _create_distance_matrix(matrix);
-    BioNJ bionj(*dm, false, true, false); // rooted=false, positiveLengths=true, verbose=false
-    auto njtree = bionj.getTree();
-    stringstream ss;
-    Newick treeWriter;
-    treeWriter.write(*njtree, ss);
-    delete njtree;
-    string s{ss.str()};
-    s.erase(s.find_last_not_of(" \n\r\t")+1);
-    return s;
-}
+//string Alignment::get_bionj_tree(vector<vector<double>> matrix) {
+//    shared_ptr<DistanceMatrix> dm = _create_distance_matrix(matrix);
+//    BioNJ bionj(*dm.get(), false, true, false); // rooted=false, positiveLengths=true, verbose=false
+//    auto njtree = bionj.getTree();
+//    stringstream ss;
+//    Newick treeWriter;
+//    treeWriter.write(*njtree, ss);
+//    delete njtree;
+//    string s{ss.str()};
+//    s.erase(s.find_last_not_of(" \n\r\t")+1);
+//    return s;
+//}
 
 vector<vector<double>> Alignment::get_distances() {
     if(!distances) throw Exception("No distances have been calculated yet");
@@ -535,7 +546,7 @@ void Alignment::initialise_likelihood(string tree) {
     }
     auto sites_ = new CompressedVectorSiteContainer(*sequences);
     SiteContainerTools::changeGapsToUnknownCharacters(*sites_);
-    likelihood = make_shared<NNIHomogeneousTreeLikelihood>(*liktree, *sites_, model.get(), rates.get(), true, true);
+    likelihood = make_shared<NNIHomogeneousTreeLikelihood>(*liktree, *sites_, model.get(), rates.get(), true, false);
     likelihood->initialize();
     delete liktree;
     delete sites_;
@@ -776,7 +787,7 @@ double Alignment::_jcdist(double d, double g, double s) {
     p = g > 0 ? d / g : 0;
     dist = (1 - (s/(s-1) * p)) > 0 ? - ((s-1)/s) * log(1 - (s/(s-1) * p)) : DISTMAX;
 //    cout << "d,g,s,p,dist : " << d << " " << g << " " << s << " " << p << " " << dist << endl;
-    return dist;
+    return dist > DISTMIN ? dist : DISTMIN;
 }
 
 double Alignment::_jcvar(double d, double g, double s) {
@@ -784,19 +795,20 @@ double Alignment::_jcvar(double d, double g, double s) {
     double var;
     p = g > 0 ? d / g : 0;
     var = (p * (1 - p)) / (g * (pow(1 - ((s/(s-1)) * p), 2)));
-    if (var < VARMIN) var = VARMIN;
-    return var;
+    return var > VARMIN ? var : VARMIN;
 }
 
 shared_ptr<DistanceMatrix> Alignment::_create_distance_matrix(vector<vector<double>> matrix) {
     if (!sequences) throw Exception("This instance has no sequences");
     size_t n = sequences->getNumberOfSequences();
     if (matrix.size() != n) throw Exception("Matrix wrong size error");
-    if (distances) distances.reset();
     vector<string> names = sequences->getSequencesNames();
     shared_ptr<DistanceMatrix> dm = make_shared<DistanceMatrix>(names);
-    for (vector<double> &row : matrix) {
-        dm->addRow(row);
+    for (size_t i=0; i < matrix.size(); ++i) {
+        auto row = matrix[i];
+        for (size_t j=i+1; j < row.size(); ++j) {
+            (*dm)(i, j) = (*dm)(j, i) = row[j];
+        }
     }
     return dm;
 }
@@ -814,4 +826,137 @@ bool Alignment::_is_file(string filename) {
 bool Alignment::_is_tree_string(string tree_string) {
     size_t l = tree_string.length();
     return (tree_string[0]=='(' && tree_string[l-1]==';');
+}
+
+string Alignment::computeTree() throw (Exception) {
+    // Initialization:
+    std::map<size_t, Node*> currentNodes_;
+    std::vector<double> sumDist_(distances->size());
+    double lambda_;
+    for (size_t i = 0; i < distances->size(); i++) {
+        currentNodes_[i] = new Node(static_cast<int>(i), distances->getName(i));
+    }
+    int idNextNode = distances->size();
+    vector<double> newDist(distances->size());
+    vector<double> newVar(distances->size());
+
+    // Build tree:
+    while (currentNodes_.size() > 3) {
+        // get best pair
+        for (std::map<size_t, Node*>::iterator i = currentNodes_.begin(); i != currentNodes_.end(); i++) {
+            size_t id = i->first;
+            sumDist_[id] = 0;
+            for (map<size_t, Node*>::iterator j = currentNodes_.begin(); j != currentNodes_.end(); j++) {
+                size_t jd = j->first;
+                sumDist_[id] += (*distances)(id, jd);
+            }
+        }
+        vector<size_t> bestPair(2);
+        double critMax = std::log(0.);
+        for (map<size_t, Node*>::iterator i = currentNodes_.begin(); i != currentNodes_.end(); i++) {
+            size_t id = i->first;
+            map<size_t, Node*>::iterator j = i;
+            j++;
+            for ( ; j != currentNodes_.end(); j++) {
+                size_t jd = j->first;
+                double crit = sumDist_[id] + sumDist_[jd] - static_cast<double>(currentNodes_.size() - 2) * (*distances)(id, jd);
+                // cout << "\t" << id << "\t" << jd << "\t" << crit << endl;
+                if (crit > critMax) {
+                    critMax = crit;
+                    bestPair[0] = id;
+                    bestPair[1] = jd;
+                }
+            }
+        }
+        if (critMax == std::log(0.)) throw Exception("Unexpected error: no maximum criterium found.");
+
+        // get branch lengths for pair
+        double ratio = (sumDist_[bestPair[0]] - sumDist_[bestPair[1]]) / static_cast<double>(currentNodes_.size() - 2);
+        vector<double> d(2);
+
+        d[0] = std::max(.5 * ((*distances)(bestPair[0], bestPair[1]) + ratio), 0.);
+        d[1] = std::max(.5 * ((*distances)(bestPair[0], bestPair[1]) - ratio), 0.);
+
+        Node* best1 = currentNodes_[bestPair[0]];
+        Node* best2 = currentNodes_[bestPair[1]];
+
+        // Distances may be used by getParentNodes (PGMA for instance).
+        best1->setDistanceToFather(d[0]);
+        best2->setDistanceToFather(d[1]);
+        Node* parent = new Node(idNextNode++);
+        parent->addSon(best1);
+        parent->addSon(best2);
+
+        // compute lambda
+        lambda_ = 0;
+        if ((*variances)(bestPair[0], bestPair[1]) == 0) lambda_ = .5;
+        else {
+            for (map<size_t, Node*>::iterator i = currentNodes_.begin(); i != currentNodes_.end(); i++) {
+                size_t id = i->first;
+                if (id != bestPair[0] && id != bestPair[1]) lambda_ += ((*variances)(bestPair[1], id) - (*variances)(bestPair[0], id));
+            }
+            double div = 2 * static_cast<double>(currentNodes_.size() - 2) * (*variances)(bestPair[0], bestPair[1]);
+            lambda_ /= div;
+            lambda_ += .5;
+        }
+        if (lambda_ < 0.) lambda_ = 0.;
+        if (lambda_ > 1.) lambda_ = 1.;
+
+        for (map<size_t, Node*>::iterator i = currentNodes_.begin(); i != currentNodes_.end(); i++) {
+            size_t id = i->first;
+            if (id != bestPair[0] && id != bestPair[1]) {
+                newDist[id] = std::max(lambda_ * ((*distances)(bestPair[0], id) - d[0]) + (1 - lambda_) * ((*distances)(bestPair[1], id) - d[1]), 0.);
+                newVar[id] = lambda_ * (*variances)(bestPair[0], id) + (1 - lambda_) * (*variances)(bestPair[1], id) - lambda_ * (1 - lambda_) * (*variances)(bestPair[0], bestPair[1]);
+            }
+          else newDist[id] = 0;
+        }
+        // Actualize currentNodes_:
+        currentNodes_[bestPair[0]] = parent;
+        currentNodes_.erase(bestPair[1]);
+        for (map<size_t, Node*>::iterator i = currentNodes_.begin(); i != currentNodes_.end(); i++) {
+            size_t id = i->first;
+            (*distances)(  bestPair[0], id) =    (*distances)(id, bestPair[0]) = newDist[id];
+            (*variances)(bestPair[0], id) =  (*variances)(id, bestPair[0]) = newVar[id];
+        }
+    }
+    // final step
+    Node* root = new Node(idNextNode);
+    map<size_t, Node* >::iterator it = currentNodes_.begin();
+    size_t i1 = it->first;
+    Node* n1       = it->second;
+    it++;
+    size_t i2 = it->first;
+    Node* n2       = it->second;
+    if (currentNodes_.size() == 2) {
+        // Rooted
+        double d = (*distances)(i1, i2) / 2;
+        root->addSon(n1);
+        root->addSon(n2);
+        n1->setDistanceToFather(d);
+        n2->setDistanceToFather(d);
+    }
+    else {
+        // Unrooted
+        it++;
+        size_t i3 = it->first;
+        Node* n3       = it->second;
+        double d1 = std::max((*distances)(i1, i2) + (*distances)(i1, i3) - (*distances)(i2, i3), 0.);
+        double d2 = std::max((*distances)(i2, i1) + (*distances)(i2, i3) - (*distances)(i1, i3), 0.);
+        double d3 = std::max((*distances)(i3, i1) + (*distances)(i3, i2) - (*distances)(i1, i2), 0.);
+        root->addSon(n1);
+        root->addSon(n2);
+        root->addSon(n3);
+        n1->setDistanceToFather(d1 / 2.);
+        n2->setDistanceToFather(d2 / 2.);
+        n3->setDistanceToFather(d3 / 2.);
+    }
+    Tree *tree_ = new TreeTemplate<Node>(root);
+    stringstream ss;
+    Newick treeWriter;
+    if (!tree_) throw Exception("The tree is empty");
+    treeWriter.write(*tree_, ss);
+    delete tree_;
+    string s{ss.str()};
+    s.erase(s.find_last_not_of(" \n\r\t")+1);
+    return s;
 }

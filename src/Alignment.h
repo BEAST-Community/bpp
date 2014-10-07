@@ -69,7 +69,7 @@ class Alignment {
         void fast_compute_distances();
         void set_distance_matrix(vector<vector<double>> matrix);
         string get_bionj_tree();
-        string get_bionj_tree(vector<vector<double>> matrix);
+//        string get_bionj_tree(vector<vector<double>> matrix);
         vector<vector<double>> get_distances();
         vector<vector<double>> get_variances();
         vector<vector<double>> get_distance_variance_matrix();
@@ -91,6 +91,8 @@ class Alignment {
 
         // Bootstrap
         vector<pair<string, string>> get_bootstrapped_sequences();
+        void chkdst();
+        string computeTree() throw (Exception);
 
     private :
         string _get_datatype();
