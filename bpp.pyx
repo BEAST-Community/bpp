@@ -297,19 +297,19 @@ cdef class Alignment:
         py_result = <libcpp_string>_r
         return py_result
     
-    # def _get_bionj_tree_1(self, list matrix ):
-    #     assert isinstance(matrix, list) and all(isinstance(elemt_rec, list) and all(isinstance(elemt_rec_rec, float) for elemt_rec_rec in elemt_rec) for elemt_rec in matrix), 'arg matrix wrong type'
-    #     cdef libcpp_vector[libcpp_vector[double]] v0 = matrix
-    #     cdef libcpp_string _r = self.inst.get().get_bionj_tree(v0)
-    #
-    #     py_result = <libcpp_string>_r
-    #     return py_result
+    def _get_bionj_tree_1(self, list matrix ):
+        assert isinstance(matrix, list) and all(isinstance(elemt_rec, list) and all(isinstance(elemt_rec_rec, float) for elemt_rec_rec in elemt_rec) for elemt_rec in matrix), 'arg matrix wrong type'
+        cdef libcpp_vector[libcpp_vector[double]] v0 = matrix
+        cdef libcpp_string _r = self.inst.get().get_bionj_tree(v0)
+
+        py_result = <libcpp_string>_r
+        return py_result
     
     def get_bionj_tree(self, *args):
         if not args:
             return self._get_bionj_tree_0(*args)
-        # elif (len(args)==1) and (isinstance(args[0], list) and all(isinstance(elemt_rec, list) and all(isinstance(elemt_rec_rec, float) for elemt_rec_rec in elemt_rec) for elemt_rec in args[0])):
-        #     return self._get_bionj_tree_1(*args)
+        elif (len(args)==1) and (isinstance(args[0], list) and all(isinstance(elemt_rec, list) and all(isinstance(elemt_rec_rec, float) for elemt_rec_rec in elemt_rec) for elemt_rec in args[0])):
+            return self._get_bionj_tree_1(*args)
         else:
                raise Exception('can not handle type of %s' % (args,))
     
