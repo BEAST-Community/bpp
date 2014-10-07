@@ -344,6 +344,13 @@ cdef class Alignment:
         cdef list py_result = _r
         return py_result
 
+    def get_mrp_supertree(self, list in_0 ):
+        assert isinstance(in_0, list) and all(isinstance(elemt_rec, bytes) for elemt_rec in in_0), 'arg in_0 wrong type'
+        cdef libcpp_vector[libcpp_string] v0 = in_0
+        cdef libcpp_string _r = self.inst.get().get_mrp_supertree(v0)
+        py_result = <libcpp_string>_r
+        return py_result
+
     def _init_0(self):
         self.inst = shared_ptr[_Alignment](new _Alignment())
 

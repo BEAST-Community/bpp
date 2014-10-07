@@ -11,22 +11,23 @@
 
 #include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
-#include <Bpp/Seq/Container/SiteContainerTools.h>
-#include <Bpp/Seq/Container/SiteContainerIterator.h>
-#include <Bpp/Seq/SiteTools.h>
-#include <Bpp/Seq/Container/CompressedVectorSiteContainer.h>
 #include <Bpp/Phyl/Model/FrequenciesSet/NucleotideFrequenciesSet.h>
 #include <Bpp/Phyl/Model/FrequenciesSet/ProteinFrequenciesSet.h>
-#include <Bpp/Seq/Alphabet/AlphabetTools.h>
-#include <Bpp/Seq/SymbolListTools.h>
 #include <Bpp/Phyl/Distance/DistanceEstimation.h>
 #include <Bpp/Phyl/Distance/BioNJ.h>
 #include <Bpp/Phyl/Io/Newick.h>
 #include <Bpp/Phyl/OptimizationTools.h>
 #include <Bpp/Phyl/Simulation/HomogeneousSequenceSimulator.h>
 #include <Bpp/Phyl/Likelihood/NNIHomogeneousTreeLikelihood.h>
+#include <Bpp/Phyl/TreeTools.h>
+#include <Bpp/Seq/Alphabet/AlphabetTools.h>
+#include <Bpp/Seq/Container/CompressedVectorSiteContainer.h>
+#include <Bpp/Seq/Container/SiteContainerIterator.h>
+#include <Bpp/Seq/Container/SiteContainerTools.h>
 #include <Bpp/Seq/Io/Fasta.h>
 #include <Bpp/Seq/Io/Phylip.h>
+#include <Bpp/Seq/SiteTools.h>
+#include <Bpp/Seq/SymbolListTools.h>
 
 #include <iostream>
 #include <string>
@@ -691,6 +692,31 @@ vector<pair<string, string>> Alignment::get_bootstrapped_sequences() {
     auto ret = _get_sequences(tmp);
     delete tmp;
     return ret;
+}
+
+// Misc
+string Alignment::get_mrp_supertree(vector<string> trees) {
+    vector<Tree*> input_trees;
+    stringstream ss;
+    unique_ptr<Newick> newickIO(new Newick(false));
+
+    for (string tree : trees) {
+        ss.str(tree);
+        ss.clear();
+        input_trees.push_back(newickIO->read(ss));
+    }
+
+    ss.str(string());
+    ss.clear();
+
+    auto mrptree = TreeTools::MRP(input_trees);
+    newickIO->write(*mrptree, ss);
+    delete mrptree;
+
+    string s{ss.str()};
+    s.erase(s.find_last_not_of(" \n\r\t")+1);
+
+    return s;
 }
 
 // Private methods

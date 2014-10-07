@@ -93,6 +93,9 @@ class Alignment {
         vector<pair<string, string>> get_bootstrapped_sequences();
         void chkdst();
 
+        // Misc
+        static string get_mrp_supertree(vector<string> trees);
+
     private :
         string _get_datatype();
         vector<pair<string, string>> _get_sequences(VectorSiteContainer *seqs);

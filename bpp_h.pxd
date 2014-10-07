@@ -71,5 +71,8 @@ cdef extern from "src/Alignment.h":
         # Bootstrap
         libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]] get_bootstrapped_sequences() except +
 
+        # Misc
+        libcpp_string get_mrp_supertree(libcpp_vector[libcpp_string]) except +
+
         # Test
         void chkdst() except +
