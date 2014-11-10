@@ -38,9 +38,10 @@
 using namespace bpp;
 using namespace std;
 
-double DISTMIN = 0.000001;
-double VARMIN = 0.000001;
-double DISTMAX = 10000;
+#define DISTMIN  0.000001
+#define VARMIN  0.000001
+#define DISTMAX  10000
+#define MIN_BRANCH_LENGTH 0.000001
 
 size_t getNumberOfDistinctPositionsWithoutGap(const SymbolList& l1, const SymbolList& l2) {
       if (l1.getAlphabet()->getAlphabetType() != l2.getAlphabet()->getAlphabetType()) throw AlphabetMismatchException("SymbolListTools::getNumberOfDistinctPositions.", l1.getAlphabet(), l2.getAlphabet());
@@ -56,6 +57,31 @@ size_t getNumberOfDistinctPositionsWithoutGap(const SymbolList& l1, const Symbol
           if (x != gapCode && y != gapCode && x != y) count++;
       }
       return count;
+}
+
+void ensure_minval_and_sum(std::vector<double>& v, double minval) {
+    double added = 0;
+    double diff = 0;
+    bool make_adjustment = false;
+    std::vector<size_t> changes;
+
+    for (size_t i = 0; i < v.size(); ++i) {
+        if (v[i] < minval) {
+            make_adjustment = true;
+            diff = minval - v[i];
+            v[i] = minval;
+            added += diff;
+        }
+        else {
+            changes.push_back(i);
+        }
+    }
+    if (make_adjustment) {
+    double to_subtract = added / changes.size();
+    for (size_t i = 0; i < changes.size(); ++i) {
+            v[changes[i]] -= to_subtract;
+        }
+    }
 }
 
 Alignment::Alignment() {}
@@ -186,6 +212,7 @@ void Alignment::set_frequencies(vector<double> freqs) {
     if (!model) throw Exception("Model not set");
     size_t reqd = is_dna() ? 4 : 20;
     if (freqs.size() != reqd) throw Exception("Frequencies vector is the wrong length (dna: 4; aa: 20)");
+    ensure_minval_and_sum(freqs, 1.1e-6);
     map<int, double> m = _vector_to_map(freqs);
     if (is_protein()) {
         model = ModelFactory::create(model->getName(), freqs);
@@ -893,8 +920,8 @@ string Alignment::_computeTree(DistanceMatrix dists, DistanceMatrix vars) throw 
         double ratio = (sumDist_[bestPair[0]] - sumDist_[bestPair[1]]) / static_cast<double>(currentNodes_.size() - 2);
         vector<double> d(2);
 
-        d[0] = std::max(.5 * (dists(bestPair[0], bestPair[1]) + ratio), 0.);
-        d[1] = std::max(.5 * (dists(bestPair[0], bestPair[1]) - ratio), 0.);
+        d[0] = std::max(.5 * (dists(bestPair[0], bestPair[1]) + ratio), MIN_BRANCH_LENGTH);
+        d[1] = std::max(.5 * (dists(bestPair[0], bestPair[1]) - ratio), MIN_BRANCH_LENGTH);
 
         Node* best1 = currentNodes_[bestPair[0]];
         Node* best2 = currentNodes_[bestPair[1]];
@@ -959,9 +986,9 @@ string Alignment::_computeTree(DistanceMatrix dists, DistanceMatrix vars) throw 
         it++;
         size_t i3 = it->first;
         Node* n3       = it->second;
-        double d1 = std::max(dists(i1, i2) + dists(i1, i3) - dists(i2, i3), 0.);
-        double d2 = std::max(dists(i2, i1) + dists(i2, i3) - dists(i1, i3), 0.);
-        double d3 = std::max(dists(i3, i1) + dists(i3, i2) - dists(i1, i2), 0.);
+        double d1 = std::max(dists(i1, i2) + dists(i1, i3) - dists(i2, i3), MIN_BRANCH_LENGTH);
+        double d2 = std::max(dists(i2, i1) + dists(i2, i3) - dists(i1, i3), MIN_BRANCH_LENGTH);
+        double d3 = std::max(dists(i3, i1) + dists(i3, i2) - dists(i1, i2), MIN_BRANCH_LENGTH);
         root->addSon(n1);
         root->addSon(n2);
         root->addSon(n3);
