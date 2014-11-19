@@ -461,6 +461,16 @@ void Alignment::set_distance_matrix(vector<vector<double>> matrix) {
     }
 }
 
+void Alignment::set_variance_matrix(vector<vector<double>> matrix) {
+    try {
+        variances = _create_distance_matrix(matrix);
+    }
+    catch (Exception &e) {
+        cout << e.what() << endl;
+        throw Exception("Error setting variance matrix");
+    }
+}
+
 void Alignment::chkdst() {
     if (!distances) throw Exception("No distances have been calculated yet");
     cout << "Dims = (" << distances->getNumberOfRows() << ", " << distances->getNumberOfColumns() << ")" << endl;

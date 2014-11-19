@@ -68,6 +68,7 @@ class Alignment {
         void compute_distances();
         void fast_compute_distances();
         void set_distance_matrix(vector<vector<double>> matrix);
+        void set_variance_matrix(vector<vector<double>> matrix);
         string get_bionj_tree();
         string get_bionj_tree(vector<vector<double>> matrix);
         vector<vector<double>> get_distances();
