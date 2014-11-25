@@ -86,17 +86,17 @@ void ensure_minval_and_sum(std::vector<double>& v, double minval) {
 
 Alignment::Alignment() {}
 
-Alignment::Alignment(vector<Alignment> alignments) {
+Alignment::Alignment(vector<Alignment>& alignments) {
     vector<shared_ptr<VectorSiteContainer>> vec_of_vsc;
     vec_of_vsc.reserve(alignments.size());
-    for (auto al : alignments) {
+    for (auto &al : alignments) {
         if (!al.sequences) throw Exception("At least one alignment has no sequences");
         vec_of_vsc.push_back(al.sequences);
     }
     sequences = SiteContainerBuilder::concatenate_alignments(vec_of_vsc);
 }
 
-Alignment::Alignment(vector<pair<string, string>> headers_sequences, string datatype) {
+Alignment::Alignment(vector<pair<string, string>>& headers_sequences, string datatype) {
     sequences = SiteContainerBuilder::construct_alignment_from_strings(headers_sequences, datatype);
 }
 
@@ -162,7 +162,7 @@ void Alignment::set_gamma_rate_model(size_t ncat, double alpha) {
         set_constant_rate_model();
     }
     else {
-        rates = make_shared<GammaDiscreteDistribution>(ncat, alpha, alpha);
+        rates = make_shared<GammaDiscreteDistribution>(ncat, alpha, alpha, 1e-12, 1e-12);
         rates->aliasParameters("alpha", "beta");
     }
     _clear_likelihood();
@@ -184,7 +184,7 @@ void Alignment::set_number_of_gamma_categories(size_t ncat) {
     _clear_likelihood();
 }
 
-void Alignment::set_rates(vector<double> rates, string order) {
+void Alignment::set_rates(const vector<double>& rates, string order) {
     if (!model) throw Exception("Model not set");
     if (!is_dna() || model->getName() != "GTR") throw Exception("Setting rates is only implemented for DNA GTR model.");
     if (is_dna()) {
@@ -317,7 +317,7 @@ vector<vector<double>> Alignment::get_exchangeabilities() {
         }
         matrix.push_back(row);
     }
-    return matrix;
+    return std::move(matrix);
 }
 
 string Alignment::get_substitution_model() {
@@ -338,7 +338,7 @@ vector<string> Alignment::get_sites() {
         sites.push_back(si->nextSite()->toString());
     }
     delete si;
-    return sites;
+    return std::move(sites);
 }
 
 vector<string> Alignment::get_informative_sites(bool exclude_gaps) {
@@ -353,7 +353,7 @@ vector<string> Alignment::get_informative_sites(bool exclude_gaps) {
         if (SiteTools::isParsimonyInformativeSite(*site)) inf_sites.push_back(site->toString());
     }
     delete si;
-    return inf_sites;
+    return std::move(inf_sites);
 }
 
 size_t Alignment::get_number_of_informative_sites(bool exclude_gaps) {
@@ -506,7 +506,7 @@ vector<vector<double>> Alignment::get_distances() {
         }
         vec.push_back(row);
     }
-    return vec;
+    return std::move(vec);
 }
 
 vector<vector<double>> Alignment::get_variances() {
@@ -521,7 +521,7 @@ vector<vector<double>> Alignment::get_variances() {
         }
         vec.push_back(row);
     }
-    return vec;
+    return std::move(vec);
 }
 
 vector<vector<double>> Alignment::get_distance_variance_matrix() {
@@ -537,7 +537,7 @@ vector<vector<double>> Alignment::get_distance_variance_matrix() {
         }
         vec.push_back(row);
     }
-    return vec;
+    return std::move(vec);
 }
 
 // Likelihood
@@ -772,7 +772,7 @@ vector<pair<string, string>> Alignment::_get_sequences(VectorSiteContainer *seqs
         BasicSequence seq = seqs->getSequence(i);
         ret.push_back(make_pair(seq.getName(), seq.toString()));
     }
-    return ret;
+    return std::move(ret);
 }
 
 void Alignment::_write_fasta(shared_ptr<VectorSiteContainer> seqs, string filename) {

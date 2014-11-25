@@ -47,6 +47,7 @@ cdef extern from "src/Alignment.h":
         void compute_distances() except +
         void fast_compute_distances() except +
         void set_distance_matrix(libcpp_vector[libcpp_vector[double]] matrix) except +
+        void set_variance_matrix(libcpp_vector[libcpp_vector[double]] matrix) except +
         libcpp_string get_bionj_tree() except +
         libcpp_string get_bionj_tree(libcpp_vector[libcpp_vector[double]] matrix) except +
         libcpp_vector[libcpp_vector[double]] get_distances() except +
@@ -76,3 +77,4 @@ cdef extern from "src/Alignment.h":
 
         # Test
         void chkdst() except +
+
