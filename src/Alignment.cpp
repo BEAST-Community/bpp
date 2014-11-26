@@ -151,7 +151,7 @@ void Alignment::write_alignment(string filename, string file_format, bool interl
 }
 
 void Alignment::set_substitution_model(string model_name) {
-    _check_compatible_model(model_name);
+    if (sequences) _check_compatible_model(model_name);
     model = ModelFactory::create(model_name);
     _clear_likelihood();
 }
@@ -186,8 +186,9 @@ void Alignment::set_number_of_gamma_categories(size_t ncat) {
 
 void Alignment::set_rates(const vector<double>& rates, string order) {
     if (!model) throw Exception("Model not set");
-    if (!is_dna() || model->getName() != "GTR") throw Exception("Setting rates is only implemented for DNA GTR model.");
-    if (is_dna()) {
+    bool isDna = model->getAlphabet()->getAlphabetType() == "DNA alphabet";
+    if (!isDna || model->getName() != "GTR") throw Exception("Setting rates is only implemented for DNA GTR model.");
+    if (isDna) {
         if (order == "acgt" || order == "ACGT") {
             double normaliser = rates[1];
             model->setParameterValue("a", rates[4] / normaliser);
@@ -210,11 +211,12 @@ void Alignment::set_rates(const vector<double>& rates, string order) {
 
 void Alignment::set_frequencies(vector<double> freqs) {
     if (!model) throw Exception("Model not set");
-    size_t reqd = is_dna() ? 4 : 20;
+    bool isDna = model->getAlphabet()->getAlphabetType() == "DNA alphabet";
+    size_t reqd = isDna ? 4 : 20;
     if (freqs.size() != reqd) throw Exception("Frequencies vector is the wrong length (dna: 4; aa: 20)");
     ensure_minval_and_sum(freqs, 1.1e-6);
     map<int, double> m = _vector_to_map(freqs);
-    if (is_protein()) {
+    if (!isDna) {
         model = ModelFactory::create(model->getName(), freqs);
     }
     model->setFreq(m);
@@ -393,6 +395,7 @@ bool Alignment::is_protein() {
 void Alignment::compute_distances() {
     if (!sequences) throw Exception("This instance has no sequences");
     if (!model) throw Exception("No model of evolution available");
+    if (!rates) throw Exception("No rate model available");
     VectorSiteContainer* sites_ = sequences->clone();
     SiteContainerTools::changeGapsToUnknownCharacters(*sites_);
     size_t n = sites_->getNumberOfSequences();
