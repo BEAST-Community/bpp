@@ -38,9 +38,10 @@
 using namespace bpp;
 using namespace std;
 
-double DISTMIN = 0.000001;
-double VARMIN = 0.000001;
-double DISTMAX = 10000;
+#define DISTMIN  0.000001
+#define VARMIN  0.000001
+#define DISTMAX  10000
+#define MIN_BRANCH_LENGTH 0.000001
 
 size_t getNumberOfDistinctPositionsWithoutGap(const SymbolList& l1, const SymbolList& l2) {
       if (l1.getAlphabet()->getAlphabetType() != l2.getAlphabet()->getAlphabetType()) throw AlphabetMismatchException("SymbolListTools::getNumberOfDistinctPositions.", l1.getAlphabet(), l2.getAlphabet());
@@ -58,19 +59,44 @@ size_t getNumberOfDistinctPositionsWithoutGap(const SymbolList& l1, const Symbol
       return count;
 }
 
+void ensure_minval_and_sum(std::vector<double>& v, double minval) {
+    double added = 0;
+    double diff = 0;
+    bool make_adjustment = false;
+    std::vector<size_t> changes;
+
+    for (size_t i = 0; i < v.size(); ++i) {
+        if (v[i] < minval) {
+            make_adjustment = true;
+            diff = minval - v[i];
+            v[i] = minval;
+            added += diff;
+        }
+        else {
+            changes.push_back(i);
+        }
+    }
+    if (make_adjustment) {
+    double to_subtract = added / changes.size();
+    for (size_t i = 0; i < changes.size(); ++i) {
+            v[changes[i]] -= to_subtract;
+        }
+    }
+}
+
 Alignment::Alignment() {}
 
-Alignment::Alignment(vector<Alignment> alignments) {
+Alignment::Alignment(vector<Alignment>& alignments) {
     vector<shared_ptr<VectorSiteContainer>> vec_of_vsc;
     vec_of_vsc.reserve(alignments.size());
-    for (auto al : alignments) {
+    for (auto &al : alignments) {
         if (!al.sequences) throw Exception("At least one alignment has no sequences");
         vec_of_vsc.push_back(al.sequences);
     }
     sequences = SiteContainerBuilder::concatenate_alignments(vec_of_vsc);
 }
 
-Alignment::Alignment(vector<pair<string, string>> headers_sequences, string datatype) {
+Alignment::Alignment(vector<pair<string, string>>& headers_sequences, string datatype) {
     sequences = SiteContainerBuilder::construct_alignment_from_strings(headers_sequences, datatype);
 }
 
@@ -125,7 +151,7 @@ void Alignment::write_alignment(string filename, string file_format, bool interl
 }
 
 void Alignment::set_substitution_model(string model_name) {
-    _check_compatible_model(model_name);
+    if (sequences) _check_compatible_model(model_name);
     model = ModelFactory::create(model_name);
     _clear_likelihood();
 }
@@ -136,7 +162,7 @@ void Alignment::set_gamma_rate_model(size_t ncat, double alpha) {
         set_constant_rate_model();
     }
     else {
-        rates = make_shared<GammaDiscreteDistribution>(ncat, alpha, alpha);
+        rates = make_shared<GammaDiscreteDistribution>(ncat, alpha, alpha, 1e-12, 1e-12);
         rates->aliasParameters("alpha", "beta");
     }
     _clear_likelihood();
@@ -158,10 +184,11 @@ void Alignment::set_number_of_gamma_categories(size_t ncat) {
     _clear_likelihood();
 }
 
-void Alignment::set_rates(vector<double> rates, string order) {
+void Alignment::set_rates(const vector<double>& rates, string order) {
     if (!model) throw Exception("Model not set");
-    if (!is_dna() || model->getName() != "GTR") throw Exception("Setting rates is only implemented for DNA GTR model.");
-    if (is_dna()) {
+    bool isDna = model->getAlphabet()->getAlphabetType() == "DNA alphabet";
+    if (!isDna || model->getName() != "GTR") throw Exception("Setting rates is only implemented for DNA GTR model.");
+    if (isDna) {
         if (order == "acgt" || order == "ACGT") {
             double normaliser = rates[1];
             model->setParameterValue("a", rates[4] / normaliser);
@@ -184,10 +211,12 @@ void Alignment::set_rates(vector<double> rates, string order) {
 
 void Alignment::set_frequencies(vector<double> freqs) {
     if (!model) throw Exception("Model not set");
-    size_t reqd = is_dna() ? 4 : 20;
+    bool isDna = model->getAlphabet()->getAlphabetType() == "DNA alphabet";
+    size_t reqd = isDna ? 4 : 20;
     if (freqs.size() != reqd) throw Exception("Frequencies vector is the wrong length (dna: 4; aa: 20)");
+    ensure_minval_and_sum(freqs, 1.1e-6);
     map<int, double> m = _vector_to_map(freqs);
-    if (is_protein()) {
+    if (!isDna) {
         model = ModelFactory::create(model->getName(), freqs);
     }
     model->setFreq(m);
@@ -290,7 +319,7 @@ vector<vector<double>> Alignment::get_exchangeabilities() {
         }
         matrix.push_back(row);
     }
-    return matrix;
+    return std::move(matrix);
 }
 
 string Alignment::get_substitution_model() {
@@ -311,7 +340,7 @@ vector<string> Alignment::get_sites() {
         sites.push_back(si->nextSite()->toString());
     }
     delete si;
-    return sites;
+    return std::move(sites);
 }
 
 vector<string> Alignment::get_informative_sites(bool exclude_gaps) {
@@ -326,7 +355,7 @@ vector<string> Alignment::get_informative_sites(bool exclude_gaps) {
         if (SiteTools::isParsimonyInformativeSite(*site)) inf_sites.push_back(site->toString());
     }
     delete si;
-    return inf_sites;
+    return std::move(inf_sites);
 }
 
 size_t Alignment::get_number_of_informative_sites(bool exclude_gaps) {
@@ -366,6 +395,7 @@ bool Alignment::is_protein() {
 void Alignment::compute_distances() {
     if (!sequences) throw Exception("This instance has no sequences");
     if (!model) throw Exception("No model of evolution available");
+    if (!rates) throw Exception("No rate model available");
     VectorSiteContainer* sites_ = sequences->clone();
     SiteContainerTools::changeGapsToUnknownCharacters(*sites_);
     size_t n = sites_->getNumberOfSequences();
@@ -434,6 +464,16 @@ void Alignment::set_distance_matrix(vector<vector<double>> matrix) {
     }
 }
 
+void Alignment::set_variance_matrix(vector<vector<double>> matrix) {
+    try {
+        variances = _create_distance_matrix(matrix);
+    }
+    catch (Exception &e) {
+        cout << e.what() << endl;
+        throw Exception("Error setting variance matrix");
+    }
+}
+
 void Alignment::chkdst() {
     if (!distances) throw Exception("No distances have been calculated yet");
     cout << "Dims = (" << distances->getNumberOfRows() << ", " << distances->getNumberOfColumns() << ")" << endl;
@@ -469,7 +509,7 @@ vector<vector<double>> Alignment::get_distances() {
         }
         vec.push_back(row);
     }
-    return vec;
+    return std::move(vec);
 }
 
 vector<vector<double>> Alignment::get_variances() {
@@ -484,7 +524,7 @@ vector<vector<double>> Alignment::get_variances() {
         }
         vec.push_back(row);
     }
-    return vec;
+    return std::move(vec);
 }
 
 vector<vector<double>> Alignment::get_distance_variance_matrix() {
@@ -500,7 +540,7 @@ vector<vector<double>> Alignment::get_distance_variance_matrix() {
         }
         vec.push_back(row);
     }
-    return vec;
+    return std::move(vec);
 }
 
 // Likelihood
@@ -738,7 +778,7 @@ vector<pair<string, string>> Alignment::_get_sequences(VectorSiteContainer *seqs
         BasicSequence seq = seqs->getSequence(i);
         ret.push_back(make_pair(seq.getName(), seq.toString()));
     }
-    return ret;
+    return std::move(ret);
 }
 
 void Alignment::_write_fasta(shared_ptr<VectorSiteContainer> seqs, string filename) {
@@ -896,8 +936,8 @@ string Alignment::_computeTree(DistanceMatrix dists, DistanceMatrix vars) throw 
         double ratio = (sumDist_[bestPair[0]] - sumDist_[bestPair[1]]) / static_cast<double>(currentNodes_.size() - 2);
         vector<double> d(2);
 
-        d[0] = std::max(.5 * (dists(bestPair[0], bestPair[1]) + ratio), 0.);
-        d[1] = std::max(.5 * (dists(bestPair[0], bestPair[1]) - ratio), 0.);
+        d[0] = std::max(.5 * (dists(bestPair[0], bestPair[1]) + ratio), MIN_BRANCH_LENGTH);
+        d[1] = std::max(.5 * (dists(bestPair[0], bestPair[1]) - ratio), MIN_BRANCH_LENGTH);
 
         Node* best1 = currentNodes_[bestPair[0]];
         Node* best2 = currentNodes_[bestPair[1]];
@@ -962,9 +1002,9 @@ string Alignment::_computeTree(DistanceMatrix dists, DistanceMatrix vars) throw 
         it++;
         size_t i3 = it->first;
         Node* n3       = it->second;
-        double d1 = std::max(dists(i1, i2) + dists(i1, i3) - dists(i2, i3), 0.);
-        double d2 = std::max(dists(i2, i1) + dists(i2, i3) - dists(i1, i3), 0.);
-        double d3 = std::max(dists(i3, i1) + dists(i3, i2) - dists(i1, i2), 0.);
+        double d1 = std::max(dists(i1, i2) + dists(i1, i3) - dists(i2, i3), MIN_BRANCH_LENGTH);
+        double d2 = std::max(dists(i2, i1) + dists(i2, i3) - dists(i1, i3), MIN_BRANCH_LENGTH);
+        double d3 = std::max(dists(i3, i1) + dists(i3, i2) - dists(i1, i2), MIN_BRANCH_LENGTH);
         root->addSon(n1);
         root->addSon(n2);
         root->addSon(n3);

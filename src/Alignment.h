@@ -26,8 +26,8 @@ using namespace bpp;
 class Alignment {
     public :
         Alignment();
-        Alignment(vector<Alignment> alignments);
-        Alignment(vector<pair<string, string>> headers_sequences, string datatype);
+        Alignment(vector<Alignment>& alignments);
+        Alignment(vector<pair<string, string>>& headers_sequences, string datatype);
         Alignment(string filename, string file_format, bool interleaved=true);
         Alignment(string filename, string file_format, string datatype, bool interleaved=true);
         Alignment(string filename, string file_format, string datatype, string model_name, bool interleaved=true);
@@ -40,7 +40,7 @@ class Alignment {
         void set_constant_rate_model();
         void set_alpha(double alpha);
         void set_number_of_gamma_categories(size_t ncat);
-        void set_rates(vector<double>, string order="acgt");
+        void set_rates(const vector<double>&, string order="acgt");
         void set_frequencies(vector<double>);
         void set_namespace(string name);
         vector<pair<string, string>> get_sequences();
@@ -68,6 +68,7 @@ class Alignment {
         void compute_distances();
         void fast_compute_distances();
         void set_distance_matrix(vector<vector<double>> matrix);
+        void set_variance_matrix(vector<vector<double>> matrix);
         string get_bionj_tree();
         string get_bionj_tree(vector<vector<double>> matrix);
         vector<vector<double>> get_distances();
