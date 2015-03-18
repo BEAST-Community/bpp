@@ -30,7 +30,7 @@ def main():
     if args.frequencies:
         d.set_frequencies(args.frequencies)
     if args.alpha:
-        d.set_alpha(4, alpha)
+        d.set_gamma_rate_model(4, alpha)
     if args.rates and args.datatype == 'dna':
         d.set_rates(args.rates, "acgt")
     distances = np.array(d.compute_distances())

@@ -700,15 +700,18 @@ string Alignment::get_mrp_supertree(vector<string> trees) {
     stringstream ss;
     unique_ptr<Newick> newickIO(new Newick(false));
 
+    cout << "Building vector of trees" << endl;
     for (string tree : trees) {
         ss.str(tree);
         ss.clear();
         input_trees.push_back(newickIO->read(ss));
     }
+    cout << "Done." << endl;
 
     ss.str(string());
     ss.clear();
 
+    cout << "Beginning MRP algorithm..." << endl;
     auto mrptree = TreeTools::MRP(input_trees);
     newickIO->write(*mrptree, ss);
     delete mrptree;
