@@ -49,6 +49,7 @@ class Alignment {
         vector<double> get_rates(string order);
         vector<double> get_rate_model_categories();
         vector<double> get_frequencies();
+        vector<double> get_empirical_frequencies();
         vector<string> get_names();
         size_t get_number_of_sequences();
         vector<string> get_sites();

@@ -28,6 +28,7 @@ cdef extern from "src/Alignment.h":
         libcpp_vector[double] get_rates(libcpp_string order) except +
         libcpp_vector[double] get_rate_model_categories() except +
         libcpp_vector[double] get_frequencies() except +
+        libcpp_vector[double] get_empirical_frequencies() except +
         libcpp_vector[libcpp_string] get_names() except +
         libcpp_vector[libcpp_vector[double]] get_exchangeabilities() except +
         libcpp_string get_namespace() except +
