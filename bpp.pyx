@@ -349,6 +349,25 @@ cdef class Alignment:
         cdef list py_result = _r
         return py_result
 
+    def _get_empirical_frequencies_0(self, double pseudocount):
+        assert (isinstance(pseudocount, float) or isinstance(pseudocount, int)), 'arg pseudocount wrong type'
+        _r = self.inst.get().get_empirical_frequencies((<double>pseudocount))
+        cdef list py_result = _r
+        return py_result
+
+    def _get_empirical_frequencies_1(self):
+        _r = self.inst.get().get_empirical_frequencies()
+        cdef list py_result = _r
+        return py_result
+
+    def get_empirical_frequencies(self, *args):
+        if not args:
+            return self._get_empirical_frequencies_1(*args)
+        elif (len(args) == 1) and ((isinstance(args[0], float)) or (isinstance(args[0], int))):
+            return self._get_empirical_frequencies_0(*args)
+        else:
+            raise Exception("Could not handle type of %s" % (args,))
+
     def get_mrp_supertree(self, list in_0 ):
         assert isinstance(in_0, list) and all(isinstance(elemt_rec, bytes) for elemt_rec in in_0), 'arg in_0 wrong type'
         cdef libcpp_vector[libcpp_string] v0 = in_0

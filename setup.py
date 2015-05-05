@@ -26,7 +26,7 @@ setup(cmdclass={'build_ext':build_ext},
       description='Pairwise distances by maximum likelihood',
       url='https://github.com/kgori/bpp.git',
       version="0.0.11",
-      #scripts=['bin/pairdist', 'bin/simulate'],
+      scripts=['bin/pairdist', 'bin/simulate'],
       ext_modules = [ext],
       install_requires=[
         'autowrap',

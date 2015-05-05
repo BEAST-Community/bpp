@@ -23,6 +23,7 @@
 #include <Bpp/Seq/Alphabet/AlphabetTools.h>
 #include <Bpp/Seq/Container/CompressedVectorSiteContainer.h>
 #include <Bpp/Seq/Container/SiteContainerIterator.h>
+#include <Bpp/Seq/Container/SequenceContainerTools.h>
 #include <Bpp/Seq/Container/SiteContainerTools.h>
 #include <Bpp/Seq/Io/Fasta.h>
 #include <Bpp/Seq/Io/Phylip.h>
@@ -277,6 +278,30 @@ vector<double> Alignment::get_rates(string order) {
 vector<double> Alignment::get_frequencies() {
     if (!model) throw Exception("Substitution model not set");
     return model->getFrequencies();
+}
+
+vector<double> Alignment::get_empirical_frequencies(double pseudocount) {
+    if (!sequences) throw Exception("This instance has no sequences");
+    std::map<int, double> m;
+    std::vector<double> f;
+    int numchars = sequences->getAlphabet()->getSize();
+    double sum;
+
+    SequenceContainerTools::getFrequencies(*sequences, m, pseudocount);
+
+    for (int i = 0; i < numchars; ++i) {
+        sum += m[i];
+    }
+
+    for (int i = 0; i < numchars; ++i) {
+        f.push_back(m[i]/sum);
+    }
+
+    return f;
+}
+
+vector<double> Alignment::get_empirical_frequencies() {
+    return get_empirical_frequencies(0);
 }
 
 vector<double> Alignment::get_rate_model_categories() {
