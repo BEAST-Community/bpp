@@ -284,11 +284,24 @@ vector<double> Alignment::get_empirical_frequencies(double pseudocount) {
     if (!sequences) throw Exception("This instance has no sequences");
     std::map<int, double> m;
     std::vector<double> f;
-    SequenceContainerTools::getFrequencies(*sequences, &m, pseudocount);
-    for (auto const &it : m) {
-        f.push_back(it.second);
+    int numchars = sequences->getAlphabet()->getSize();
+    double sum;
+
+    SequenceContainerTools::getFrequencies(*sequences, m, pseudocount);
+
+    for (int i = 0; i < numchars; ++i) {
+        sum += m[i];
     }
+
+    for (int i = 0; i < numchars; ++i) {
+        f.push_back(m[i]/sum);
+    }
+
     return f;
+}
+
+vector<double> Alignment::get_empirical_frequencies() {
+    return get_empirical_frequencies(0);
 }
 
 vector<double> Alignment::get_rate_model_categories() {
