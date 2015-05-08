@@ -79,7 +79,7 @@ shared_ptr<SubstitutionModel> ModelFactory::create(Model model, bool parameteris
         return make_shared<TN93>(&AlphabetTools::DNA_ALPHABET);
         break;
     case Model::GTR:
-        return make_shared<GTR>(&AlphabetTools::DNA_ALPHABET, 1.0, 0.1, 0.02, 0.1, 0.02, 0.25, 0.25, 0.25, 0.25);
+        return make_shared<GTR>(&AlphabetTools::DNA_ALPHABET);
         break;
     case Model::T92:
         return make_shared<T92>(&AlphabetTools::DNA_ALPHABET);

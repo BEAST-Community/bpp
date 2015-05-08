@@ -190,22 +190,32 @@ void Alignment::set_rates(const vector<double>& rates, string order) {
     bool isDna = model->getAlphabet()->getAlphabetType() == "DNA alphabet";
     if (!isDna || model->getName() != "GTR") throw Exception("Setting rates is only implemented for DNA GTR model.");
     if (isDna) {
+        double a, b, c, d, e, theta, theta1, theta2, piA, piC, piG, piT;
         if (order == "acgt" || order == "ACGT") {
-            double normaliser = rates[1];
-            model->setParameterValue("a", rates[4] / normaliser);
-            model->setParameterValue("b", rates[2] / normaliser);
-            model->setParameterValue("c", rates[5] / normaliser);
-            model->setParameterValue("d", rates[0] / normaliser);
-            model->setParameterValue("e", rates[3] / normaliser);
+            a = rates[4]/rates[1];
+            b = rates[2]/rates[1];
+            c = 1/rates[1];
+            d = rates[0]/rates[1];
+            e = rates[3]/rates[1];
         }
         else if (order == "tcag" || order == "TCAG") {
-            model->setParameterValue("a", rates[0]);
-            model->setParameterValue("b", rates[1]);
-            model->setParameterValue("c", rates[2]);
-            model->setParameterValue("d", rates[3]);
-            model->setParameterValue("e", rates[4]);
+            a = rates[0];
+            b = rates[1];
+            c = rates[2];
+            d = rates[3];
+            e = rates[4];
         }
-        else throw Exception("Unrecognised order for rates: " + order);
+        else {
+            throw Exception("Unrecognised order for rates: " + order);
+        }
+        theta  = model->getParameterValue("theta");
+        theta1 = model->getParameterValue("theta1");
+        theta2 = model->getParameterValue("theta2");
+        piA = theta1 * (1. - theta);
+        piC = (1. - theta2) * theta;
+        piG = theta2 * theta;
+        piT = (1. - theta1) * (1. - theta);
+        model = make_shared<GTR>(&AlphabetTools::DNA_ALPHABET, a, b, c, d, e, piA, piC, piG, piT);
         _clear_likelihood();
     }
 }
@@ -242,37 +252,35 @@ size_t Alignment::get_number_of_gamma_categories() {
 }
 
 vector<double> Alignment::get_rates(string order) {
-    if (is_dna()) {
-        vector<double> rates_vec;
-        RowMatrix<double> exch = model->getExchangeabilityMatrix();
-        if (order == "acgt" || order == "ACGT") { //{a-c, a-g, a-t, c-g, c-t, g-t=1}
-            double normaliser = exch(2,3);
-            rates_vec.push_back(exch(0,1) / normaliser);
-            rates_vec.push_back(exch(0,2) / normaliser);
-            rates_vec.push_back(exch(0,3) / normaliser);
-            rates_vec.push_back(exch(1,2) / normaliser);
-            rates_vec.push_back(exch(1,3) / normaliser);
-            rates_vec.push_back(1.0);
-        }
-        else if (order == "tcag" || order == "TCAG") { //{a=t-c, b=t-a, c=t-g, d=c-a, e=c-g, f=a-g=1}
-            double normaliser = exch(0,2);
-            rates_vec.push_back(exch(1,3) / normaliser);
-            rates_vec.push_back(exch(0,3) / normaliser);
-            rates_vec.push_back(exch(2,3) / normaliser);
-            rates_vec.push_back(exch(0,1) / normaliser);
-            rates_vec.push_back(exch(1,2) / normaliser);
-            rates_vec.push_back(1.0);
-        }
-        else {
-            cerr << "Unknown order: " << order << ". Accepted orders are {tcag, acgt}" << endl;
-            throw Exception("Unknown order error");
-        }
-        return rates_vec;
+    if(!model) throw Exception("Model not set");
+    if(model->getAlphabet()->getAlphabetType() != "DNA alphabet") {
+        throw Exception("Getting and setting rates is not implemented for protein models");
+    }
+    vector<double> rates_vec;
+    RowMatrix<double> exch = model->getExchangeabilityMatrix();
+    if (order == "acgt" || order == "ACGT") { //{a-c, a-g, a-t, c-g, c-t, g-t=1}
+        double normaliser = exch(2,3);
+        rates_vec.push_back(exch(0,1) / normaliser);
+        rates_vec.push_back(exch(0,2) / normaliser);
+        rates_vec.push_back(exch(0,3) / normaliser);
+        rates_vec.push_back(exch(1,2) / normaliser);
+        rates_vec.push_back(exch(1,3) / normaliser);
+        rates_vec.push_back(1.0);
+    }
+    else if (order == "tcag" || order == "TCAG") { //{a=t-c, b=t-a, c=t-g, d=c-a, e=c-g, f=a-g=1}
+        double normaliser = exch(0,2);
+        rates_vec.push_back(exch(1,3) / normaliser);
+        rates_vec.push_back(exch(0,3) / normaliser);
+        rates_vec.push_back(exch(2,3) / normaliser);
+        rates_vec.push_back(exch(0,1) / normaliser);
+        rates_vec.push_back(exch(1,2) / normaliser);
+        rates_vec.push_back(1.0);
     }
     else {
-        cerr << "Getting and setting rates is not implemented for protein models" << endl;
-        throw Exception("Protein model disallowed error");
+        cerr << "Unknown order: " << order << ". Accepted orders are {tcag, acgt}" << endl;
+        throw Exception("Unknown order error");
     }
+    return rates_vec;
 }
 
 vector<double> Alignment::get_frequencies() {
@@ -285,7 +293,7 @@ vector<double> Alignment::get_empirical_frequencies(double pseudocount) {
     std::map<int, double> m;
     std::vector<double> f;
     int numchars = sequences->getAlphabet()->getSize();
-    double sum;
+    double sum = 0;
 
     SequenceContainerTools::getFrequencies(*sequences, m, pseudocount);
 
@@ -344,7 +352,7 @@ vector<vector<double>> Alignment::get_exchangeabilities() {
         }
         matrix.push_back(row);
     }
-    return std::move(matrix);
+    return matrix;
 }
 
 string Alignment::get_substitution_model() {
@@ -360,27 +368,25 @@ string Alignment::get_namespace() {
 vector<string> Alignment::get_sites() {
     if (!sequences) throw Exception("No sequences present.");
     vector<string> sites;
-    auto si = new SimpleSiteContainerIterator(*sequences);
+    auto si = make_unique<SimpleSiteContainerIterator>(*sequences);
     while(si->hasMoreSites()) {
         sites.push_back(si->nextSite()->toString());
     }
-    delete si;
-    return std::move(sites);
+    return sites;
 }
 
 vector<string> Alignment::get_informative_sites(bool exclude_gaps) {
     if (!sequences) throw Exception("No sequences present.");
     vector<string> inf_sites;
-    ConstSiteIterator* si = nullptr;
-    if (exclude_gaps) si = new CompleteSiteContainerIterator(*sequences);
-    else si = new SimpleSiteContainerIterator(*sequences);
+    unique_ptr<ConstSiteIterator> si;
+    if (exclude_gaps) si = make_unique<CompleteSiteContainerIterator>(*sequences);
+    else si = make_unique<SimpleSiteContainerIterator>(*sequences);
     const Site* site = 0;
     while (si->hasMoreSites()) {
         site = si->nextSite();
         if (SiteTools::isParsimonyInformativeSite(*site)) inf_sites.push_back(site->toString());
     }
-    delete si;
-    return std::move(inf_sites);
+    return inf_sites;
 }
 
 size_t Alignment::get_number_of_informative_sites(bool exclude_gaps) {
@@ -534,7 +540,7 @@ vector<vector<double>> Alignment::get_distances() {
         }
         vec.push_back(row);
     }
-    return std::move(vec);
+    return vec;
 }
 
 vector<vector<double>> Alignment::get_variances() {
@@ -549,7 +555,7 @@ vector<vector<double>> Alignment::get_variances() {
         }
         vec.push_back(row);
     }
-    return std::move(vec);
+    return vec;
 }
 
 vector<vector<double>> Alignment::get_distance_variance_matrix() {
@@ -565,7 +571,7 @@ vector<vector<double>> Alignment::get_distance_variance_matrix() {
         }
         vec.push_back(row);
     }
-    return std::move(vec);
+    return vec;
 }
 
 // Likelihood
@@ -589,25 +595,23 @@ void Alignment::initialise_likelihood(string tree) {
         cerr << "Rates not set" << endl;
         throw Exception("Rates not set error");
     }
-    Tree * liktree;
+    unique_ptr<Tree> liktree;
     auto reader = make_shared<Newick>(false);
     if (_is_file(tree)) {
-        liktree = reader->read(tree);
+        liktree = unique_ptr<Tree>(reader->read(tree));
     }
     else if (_is_tree_string(tree)) {
         stringstream ss{tree};
-        liktree = reader->read(ss);
+        liktree = unique_ptr<Tree>(reader->read(ss));
     }
     else {
         cerr << "Couldn\'t understand this tree: " << tree << endl;
         throw Exception("Tree error");
     }
-    auto sites_ = new CompressedVectorSiteContainer(*sequences);
+    auto sites_ = make_unique<CompressedVectorSiteContainer>(*sequences);
     SiteContainerTools::changeGapsToUnknownCharacters(*sites_);
     likelihood = make_shared<NNIHomogeneousTreeLikelihood>(*liktree, *sites_, model.get(), rates.get(), true, false);
     likelihood->initialize();
-    delete liktree;
-    delete sites_;
 }
 
 void Alignment::optimise_parameters(bool fix_branch_lengths) {
@@ -686,24 +690,20 @@ void Alignment::set_simulator(string tree) {
         cerr << "Rates not set" << endl;
         throw exception();
     }
-    Tree * simtree;
-    Newick * reader = new Newick(false);
+    unique_ptr<Tree> simtree;
+    unique_ptr<Newick> reader = make_unique<Newick>(false);
     if (_is_file(tree)) {
-        simtree = reader->read(tree);
-        delete reader;
+        simtree = unique_ptr<Tree>(reader->read(tree));
     }
     else if (_is_tree_string(tree)) {
         stringstream ss{tree};
-        simtree = reader->read(ss);
-        delete reader;
+        simtree = unique_ptr<Tree>(reader->read(ss));
     }
     else {
         cerr << "Couldn\'t understand this tree: " << tree << endl;
-        delete reader;
         throw exception();
     }
-    simulator = make_shared<HomogeneousSequenceSimulator>(model.get(), rates.get(), simtree);
-    delete simtree;
+    simulator = make_shared<HomogeneousSequenceSimulator>(model.get(), rates.get(), simtree.get());
 }
 
 vector<pair<string, string>> Alignment::simulate(size_t nsites, string tree) {
@@ -753,9 +753,8 @@ vector<pair<string, string>> Alignment::get_simulated_sequences() {
 // Bootstrap
 vector<pair<string, string>> Alignment::get_bootstrapped_sequences() {
     if (!sequences) throw Exception("No sequences to bootstrap.");
-    VectorSiteContainer *tmp = SiteContainerTools::bootstrapSites(*sequences);
-    auto ret = _get_sequences(tmp);
-    delete tmp;
+    auto tmp = unique_ptr<VectorSiteContainer>(SiteContainerTools::bootstrapSites(*sequences));
+    auto ret = _get_sequences(tmp.get());
     return ret;
 }
 
@@ -763,10 +762,10 @@ vector<pair<string, string>> Alignment::get_bootstrapped_sequences() {
 string Alignment::get_mrp_supertree(vector<string> trees) {
     vector<Tree*> input_trees;
     stringstream ss;
-    unique_ptr<Newick> newickIO(new Newick(false));
+    unique_ptr<Newick> newickIO = make_unique<Newick>(false);
 
     cout << "Building vector of trees" << endl;
-    for (string tree : trees) {
+    for (string &tree : trees) {
         ss.str(tree);
         ss.clear();
         input_trees.push_back(newickIO->read(ss));
@@ -777,9 +776,11 @@ string Alignment::get_mrp_supertree(vector<string> trees) {
     ss.clear();
 
     cout << "Beginning MRP algorithm..." << endl;
-    auto mrptree = TreeTools::MRP(input_trees);
+    auto mrptree = unique_ptr<Tree>(TreeTools::MRP(input_trees));
+    for (auto& tree: input_trees) {
+        delete tree;
+    }
     newickIO->write(*mrptree, ss);
-    delete mrptree;
 
     string s{ss.str()};
     s.erase(s.find_last_not_of(" \n\r\t")+1);
@@ -803,7 +804,7 @@ vector<pair<string, string>> Alignment::_get_sequences(VectorSiteContainer *seqs
         BasicSequence seq = seqs->getSequence(i);
         ret.push_back(make_pair(seq.getName(), seq.toString()));
     }
-    return std::move(ret);
+    return ret;
 }
 
 void Alignment::_write_fasta(shared_ptr<VectorSiteContainer> seqs, string filename) {
