@@ -595,6 +595,10 @@ void Alignment::initialise_likelihood(string tree) {
         cerr << "Rates not set" << endl;
         throw Exception("Rates not set error");
     }
+    if (!sequences) {
+        cerr << "No sequences" << endl;
+        throw Exception("This instance has no sequences");
+    }
     unique_ptr<Tree> liktree;
     auto reader = make_shared<Newick>(false);
     if (_is_file(tree)) {
