@@ -507,9 +507,9 @@ void Alignment::set_variance_matrix(vector<vector<double>> matrix) {
 
 void Alignment::chkdst() {
     if (!distances) throw Exception("No distances have been calculated yet");
-    cout << "Dims = (" << distances->getNumberOfRows() << ", " << distances->getNumberOfColumns() << ")" << endl;
-    for (size_t i=0; i < distances->getNumberOfRows(); ++i) {
-        for (size_t j=0; j < distances->getNumberOfColumns(); ++j) {
+    cout << "Dims = (" << distances->size() << ", " << distances->size() << ")" << endl;
+    for (size_t i=0; i < distances->size(); ++i) {
+        for (size_t j=0; j < distances->size(); ++j) {
             cout << (*distances)(i,j) << " ";
         }
         cout <<endl;
@@ -532,7 +532,7 @@ vector<vector<double>> Alignment::get_distances() {
     if(!distances) throw Exception("No distances have been calculated yet");
     vector<vector<double>> vec;
     vector<string> names = sequences->getSequencesNames();
-    size_t nrow = distances->getNumberOfRows();
+    size_t nrow = distances->size();
     for (size_t i = 0; i < nrow; ++i) {
         vector<double> row;
         for (size_t j = 0; j < nrow; ++j) {
@@ -547,7 +547,7 @@ vector<vector<double>> Alignment::get_variances() {
     if(!variances) throw Exception("No distances have been calculated yet");
     vector<vector<double>> vec;
     vector<string> names = sequences->getSequencesNames();
-    size_t nrow = variances->getNumberOfRows();
+    size_t nrow = variances->size();
     for (size_t i = 0; i < nrow; ++i) {
         vector<double> row;
         for (size_t j = 0; j < nrow; ++j) {
@@ -562,7 +562,7 @@ vector<vector<double>> Alignment::get_distance_variance_matrix() {
     if(!variances || !distances) throw Exception("No distances have been calculated yet");
     vector<vector<double>> vec;
     vector<string> names = sequences->getSequencesNames();
-    size_t nrow = variances->getNumberOfRows();
+    size_t nrow = variances->size();
     for (size_t i = 0; i < nrow; ++i) {
         vector<double> row;
         for (size_t j = 0; j < nrow; ++j) {
