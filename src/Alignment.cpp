@@ -659,12 +659,7 @@ string Alignment::get_tree() {
     if (!likelihood) {
         throw Exception("Likelihood calculator not set - call initialise_likelihood");
     }
-    auto *tree = likelihood->getTree().clone();
-    stringstream ss;
-    Newick treeWriter;
-    treeWriter.write(*tree, ss);
-    delete tree;
-    string s{ss.str()};
+    string s = TreeTools::treeToParenthesis(likelihood->getTree());
     s.erase(s.find_last_not_of(" \n\r\t")+1);
     return s;
 }
