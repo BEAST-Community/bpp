@@ -52,6 +52,7 @@ class Alignment {
         vector<double> get_empirical_frequencies(double pseudocount);
         vector<double> get_empirical_frequencies();
         vector<string> get_names();
+        vector<string> get_parameter_names();
         size_t get_number_of_sequences();
         vector<string> get_sites();
         size_t get_number_of_sites();

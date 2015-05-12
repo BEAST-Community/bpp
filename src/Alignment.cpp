@@ -322,6 +322,21 @@ vector<string> Alignment::get_names() {
     return sequences->getSequencesNames();
 }
 
+vector<string> Alignment::get_parameter_names() {
+    ParameterList pl;
+    if (likelihood) {
+        pl = likelihood->getParameters();
+    }
+    else if (rates && model) {
+        pl = rates->getIndependentParameters();
+        pl.addParameters(model->getIndependentParameters());
+    }
+    else {
+        throw Exception("No parameters found");
+    }
+    return pl.getParameterNames();
+}
+
 size_t Alignment::get_number_of_sequences() {
     if (!sequences) throw Exception("This instance has no sequences");
     return sequences->getNumberOfSequences();
@@ -403,8 +418,8 @@ size_t Alignment::get_number_of_free_parameters() {
 
 void Alignment::_print_params() {
     if (likelihood) {
-            ParameterList pl = likelihood->getParameters();
-            pl.printParameters(cout);
+        ParameterList pl = likelihood->getParameters();
+        pl.printParameters(cout);
     }
     else if (rates && model) {
          ParameterList pl = rates->getIndependentParameters();
@@ -894,7 +909,7 @@ shared_ptr<DistanceMatrix> Alignment::_create_distance_matrix(vector<vector<doub
     size_t n = sequences->getNumberOfSequences();
     if (matrix.size() != n) throw Exception("Matrix wrong size error");
     vector<string> names = sequences->getSequencesNames();
-    shared_ptr<DistanceMatrix> dm = make_shared<DistanceMatrix>(names);
+    auto dm = make_shared<DistanceMatrix>(names);
     for (size_t i=0; i < matrix.size(); ++i) {
         auto row = matrix[i];
         for (size_t j=i+1; j < row.size(); ++j) {

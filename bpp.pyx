@@ -138,6 +138,11 @@ cdef class Alignment:
         cdef list py_result = _r
         return py_result
 
+    def get_parameter_names(self):
+        _r = self.inst.get().get_parameter_names()
+        cdef list py_result = _r
+        return py_result
+
     def set_constant_rate_model(self):
         self.inst.get().set_constant_rate_model()
 
