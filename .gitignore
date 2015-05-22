@@ -1,3 +1,4 @@
+*.o
 pairdist.cpp
 src/test*
 # Byte-compiled / optimized / DLL files
