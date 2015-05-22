@@ -22,6 +22,7 @@ cdef extern from "src/Alignment.h":
         void set_rates(libcpp_vector[double], libcpp_string order) except +
         void set_frequencies(libcpp_vector[double]) except +
         void set_namespace(libcpp_string name) except +
+        void set_parameter(libcpp_string name, double) except +
         libcpp_vector[libcpp_pair[libcpp_string, libcpp_string]] get_sequences() except +
         double get_alpha() except +
         size_t get_number_of_gamma_categories() except +
@@ -45,6 +46,10 @@ cdef extern from "src/Alignment.h":
         bool is_dna() except +
         bool is_protein() except +
         void _print_params() except +
+        double test_nni(int nodeid) except +
+        void do_nni(int nodeid) except +
+        void commit_topology() except +
+        void _print_node(int nodeid) except +
 
         # Distance
         void compute_distances() except +

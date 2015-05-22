@@ -81,6 +81,7 @@ cdef class Alignment:
         self.inst.get().set_rates(v0, (<libcpp_string>order))
 
 
+
     def get_number_of_sites(self):
         cdef size_t _r = self.inst.get().get_number_of_sites()
         py_result = <size_t>_r
@@ -132,6 +133,19 @@ cdef class Alignment:
 
 
         self.inst.get().read_alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<libcpp_string>datatype), (<bool>interleaved))
+
+    def test_nni(self, int nodeid):
+        assert isinstance(nodeid, int), 'arg nodeid wrong type'
+        cdef double _r = self.inst.get().test_nni(nodeid)
+        py_result = <double>_r
+        return py_result
+
+    def do_nni(self, int nodeid):
+        assert isinstance(nodeid, int), 'arg nodeid wrong type'
+        self.inst.get().do_nni(nodeid)
+
+    def commit_topology(self):
+        self.inst.get().commit_topology()
 
     def get_names(self):
         _r = self.inst.get().get_names()
@@ -187,6 +201,10 @@ cdef class Alignment:
 
     def _print_params(self):
         self.inst.get()._print_params()
+
+    def _print_node(self, int nodeid):
+        assert isinstance(nodeid, int), 'arg nodeid wrong type'
+        self.inst.get()._print_node(nodeid)
 
     def chkdst(self):
         self.inst.get().chkdst()
@@ -301,6 +319,12 @@ cdef class Alignment:
         assert isinstance(alpha, float), 'arg alpha wrong type'
 
         self.inst.get().set_alpha((<double>alpha))
+
+    def set_parameter(self, bytes name, double value):
+        assert isinstance(value, float), 'arg value wrong type'
+        assert isinstance(name, bytes), 'arg name wrong type'
+
+        self.inst.get().set_parameter(<libcpp_string>name, <double>value)
 
     def _get_bionj_tree_0(self):
         cdef libcpp_string _r = self.inst.get().get_bionj_tree()

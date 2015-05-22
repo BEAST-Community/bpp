@@ -50,7 +50,7 @@ ModelFactory::ModelFactory() {}
 
 ModelFactory::~ModelFactory() {}
 
-shared_ptr<SubstitutionModel> ModelFactory::create(string model_name) throw (Exception) {
+shared_ptr<AbstractSubstitutionModel> ModelFactory::create(string model_name) throw (Exception) {
     try {
         Model model = string_to_model(model_name);
         bool pf = hasEnding(model_name, "+F");
@@ -64,7 +64,7 @@ shared_ptr<SubstitutionModel> ModelFactory::create(string model_name) throw (Exc
     }
 }
 
-shared_ptr<SubstitutionModel> ModelFactory::create(Model model, bool parameterise_freqs) throw (Exception) {
+shared_ptr<AbstractSubstitutionModel> ModelFactory::create(Model model, bool parameterise_freqs) throw (Exception) {
     switch (model) {
     case Model::JCnuc:
         return make_shared<JCnuc>(&AlphabetTools::DNA_ALPHABET);
@@ -79,7 +79,7 @@ shared_ptr<SubstitutionModel> ModelFactory::create(Model model, bool parameteris
         return make_shared<TN93>(&AlphabetTools::DNA_ALPHABET);
         break;
     case Model::GTR:
-        return make_shared<GTR>(&AlphabetTools::DNA_ALPHABET);
+        return make_shared<GTR>(&AlphabetTools::DNA_ALPHABET, 1.0, 0.1, 0.02, 0.1, 0.02, 0.25, 0.25, 0.25, 0.25);
         break;
     case Model::T92:
         return make_shared<T92>(&AlphabetTools::DNA_ALPHABET);
@@ -127,7 +127,7 @@ shared_ptr<SubstitutionModel> ModelFactory::create(Model model, bool parameteris
     }
 }
 
-shared_ptr<SubstitutionModel> ModelFactory::create(string model_name, vector<double> freqs) throw (Exception) {
+shared_ptr<AbstractSubstitutionModel> ModelFactory::create(string model_name, vector<double> freqs) throw (Exception) {
     Model model = string_to_model(model_name);
     FullProteinFrequenciesSet *freqs_set = nullptr;
     switch (model) {

@@ -9,7 +9,7 @@
 #define _ALIGNMENT_H_
 
 #include <Bpp/Seq/Container/VectorSiteContainer.h>
-#include <Bpp/Phyl/Model/SubstitutionModel.h>
+#include <Bpp/Phyl/Model/AbstractSubstitutionModel.h>
 #include <Bpp/Numeric/Prob/AbstractDiscreteDistribution.h>
 #include <Bpp/Seq/DistanceMatrix.h>
 #include <Bpp/Phyl/Likelihood/NNIHomogeneousTreeLikelihood.h>
@@ -43,6 +43,7 @@ class Alignment {
         void set_rates(const vector<double>&, string order="acgt");
         void set_frequencies(vector<double>);
         void set_namespace(string name);
+        void set_parameter(string name, double value);
         vector<pair<string, string>> get_sequences();
         double get_alpha();
         size_t get_number_of_gamma_categories();
@@ -66,7 +67,10 @@ class Alignment {
         bool is_dna();
         bool is_protein();
         void _print_params();
-
+        double test_nni(int nodeid);
+        void do_nni(int nodeid);
+        void commit_topology();
+        void _print_node(int nodeid);
         // Distance
         void compute_distances();
         void fast_compute_distances();
@@ -116,12 +120,13 @@ class Alignment {
         shared_ptr<DistanceMatrix> _create_distance_matrix(vector<vector<double>> matrix);
         shared_ptr<VectorSiteContainer> sequences;
         shared_ptr<VectorSiteContainer> simulated_sequences;
-        shared_ptr<SubstitutionModel> model;
+        shared_ptr<AbstractSubstitutionModel> model;
         shared_ptr<AbstractDiscreteDistribution> rates;
         shared_ptr<DistanceMatrix> distances;
         shared_ptr<DistanceMatrix> variances;
         shared_ptr<NNIHomogeneousTreeLikelihood> likelihood;
         shared_ptr<HomogeneousSequenceSimulator> simulator;
+        unique_ptr<ParameterList> _get_parameter_list();
         string _name;
         string _computeTree(DistanceMatrix dists, DistanceMatrix vars) throw (Exception);
 };

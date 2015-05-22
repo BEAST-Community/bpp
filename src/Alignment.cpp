@@ -11,6 +11,7 @@
 
 #include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
+#include <Bpp/Phyl/BipartitionList.h>
 #include <Bpp/Phyl/Model/FrequenciesSet/NucleotideFrequenciesSet.h>
 #include <Bpp/Phyl/Model/FrequenciesSet/ProteinFrequenciesSet.h>
 #include <Bpp/Phyl/Distance/DistanceEstimation.h>
@@ -19,7 +20,10 @@
 #include <Bpp/Phyl/OptimizationTools.h>
 #include <Bpp/Phyl/Simulation/HomogeneousSequenceSimulator.h>
 #include <Bpp/Phyl/Likelihood/NNIHomogeneousTreeLikelihood.h>
+#include <Bpp/Phyl/TopologySearch.h>
+#include <Bpp/Phyl/Node.h>
 #include <Bpp/Phyl/TreeTools.h>
+#include <Bpp/Phyl/TreeExceptions.h>
 #include <Bpp/Seq/Alphabet/AlphabetTools.h>
 #include <Bpp/Seq/Container/CompressedVectorSiteContainer.h>
 #include <Bpp/Seq/Container/SiteContainerIterator.h>
@@ -322,20 +326,132 @@ vector<string> Alignment::get_names() {
     return sequences->getSequencesNames();
 }
 
-vector<string> Alignment::get_parameter_names() {
-    ParameterList pl;
+unique_ptr<ParameterList> Alignment::_get_parameter_list() {
+    auto pl = make_unique<ParameterList>();
     if (likelihood) {
-        pl = likelihood->getParameters();
-    }
-    else if (rates && model) {
-        pl = rates->getIndependentParameters();
-        pl.addParameters(model->getIndependentParameters());
+        pl->addParameters(likelihood->getParameters());
     }
     else {
-        throw Exception("No parameters found");
+        if (rates) {
+            pl->addParameters(rates->getIndependentParameters());
+        }
+        if (model) {
+            pl->addParameters(model->getIndependentParameters());
+        }
     }
-    return pl.getParameterNames();
+    return pl;
 }
+
+vector<string> Alignment::get_parameter_names() {
+    auto pl = _get_parameter_list();
+    return pl->getParameterNames();
+}
+
+void Alignment::set_parameter(string name, double value) {
+    if (likelihood) {
+        auto pl = likelihood->getParameters();
+        auto names = pl.getParameterNames();
+        for (auto& n : names) {
+            cout << n << endl;
+        }
+        if (pl.hasParameter(name)) {
+            cout << "Found parameter " << name << endl;
+            pl.setParameterValue(name, value);
+            likelihood->setParametersValues(pl);
+            return;
+        }
+    }
+    if (rates) {
+        cout << "We have rates" << endl;
+        auto pl = rates->getIndependentParameters();
+        auto names = pl.getParameterNames();
+        for (auto& n : names) {
+            cout << n << endl;
+        }
+        if (pl.hasParameter(name)) {
+            cout << "Found parameter " << name << endl;
+            pl.setParameterValue(name, value);
+            rates->setParametersValues(pl);
+            rates->fireParameterChanged(pl);
+            return;
+        }
+    }
+    if (model) {
+        cout << "We have model" << endl;
+        auto pl = model->getIndependentParameters();
+        auto names = pl.getParameterNames();
+        for (auto& n : names) {
+            cout << n << endl;
+        }
+        if (pl.hasParameter(name)) {
+            cout << "Found parameter " << name << endl;
+            pl.setParameterValue(name, value);
+            model->setParametersValues(pl);
+            model->fireParameterChanged(pl);
+            return;
+        }
+        return;
+    }
+}
+
+double Alignment::test_nni(int nodeid) {
+    // Checks:
+    if (!likelihood) throw Exception("This instance has no likelihood model");
+    int num_nodes = likelihood->getTree().getNumberOfNodes() - 1;
+    if (nodeid > num_nodes) {
+        stringstream ss;
+        ss << "Max nodeid = " << num_nodes;
+        throw Exception(ss.str());
+    }
+    // OK
+
+    return likelihood->testNNI(nodeid);
+}
+
+void Alignment::do_nni(int nodeid) {
+    // Checks:
+    if (!likelihood) throw Exception("This instance has no likelihood model");
+    int num_nodes = likelihood->getTree().getNumberOfNodes() - 1;
+    if (nodeid > num_nodes) {
+        stringstream ss;
+        ss << "Max nodeid = " << num_nodes;
+        throw Exception(ss.str());
+    }
+    // OK
+    likelihood->doNNI(nodeid);
+}
+
+void Alignment::commit_topology() {
+    // Checks:
+    if (!likelihood) throw Exception("This instance has no likelihood model");
+    // OK
+
+    likelihood->topologyChangePerformed(TopologyChangeEvent());
+}
+
+void Alignment::_print_node(int nodeid) {
+    // Checks:
+    if (!likelihood) throw Exception("This instance has no likelihood model");
+    int num_nodes = likelihood->getTree().getNumberOfNodes() - 1;
+    if (nodeid > num_nodes) {
+        stringstream ss;
+        ss << "Max nodeid = " << num_nodes;
+        throw Exception(ss.str());
+    }
+    // OK
+    auto tt = TreeTemplate<Node>(likelihood->getTree());
+    auto node = tt.getNode(nodeid);
+    auto father = node->getFather();
+    cout << "NODE " << nodeid << endl;
+    if (father!=0) {
+        cout << "Father id = " << father->getId() << endl;
+        cout << "distance = " << node->getDistanceToFather() << endl;;
+    }
+    if (node->isLeaf()) {
+        cout << "Node is leaf. Label = " << node->getName() << endl;
+    }
+}
+
 
 size_t Alignment::get_number_of_sequences() {
     if (!sequences) throw Exception("This instance has no sequences");
