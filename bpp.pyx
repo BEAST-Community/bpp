@@ -246,6 +246,11 @@ cdef class Alignment:
         py_result = <libcpp_string>_r
         return py_result
 
+    def get_abayes_tree(self):
+        cdef libcpp_string _r = self.inst.get().get_abayes_tree()
+        py_result = <libcpp_string>_r
+        return py_result
+
     def get_distance_variance_matrix(self):
         _r = self.inst.get().get_distance_variance_matrix()
         cdef list py_result = _r

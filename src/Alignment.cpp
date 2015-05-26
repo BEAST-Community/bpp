@@ -1178,3 +1178,31 @@ string Alignment::_computeTree(DistanceMatrix dists, DistanceMatrix vars) throw 
     s.erase(s.find_last_not_of(" \n\r\t")+1);
     return s;
 }
+
+string Alignment::get_abayes_tree() {
+    TreeTemplate<Node> tree = TreeTemplate<Node>(likelihood->getTree());
+    std::map<int, nniIDs> nniMap;
+
+    for (auto& node : tree.getNodes()) {
+        if (node->hasFather() && node->getFather()->hasFather()) {
+            auto search = nniMap.find(node->getFatherId());
+            if (search == nniMap.end()) {
+                nniMap[node->getFatherId()].rearr1 = node->getId();
+            }
+            else {
+                search->second.rearr2 = node->getId();
+            };
+        }
+    }
+
+    for (auto entry : nniMap) {
+        double lnl1 = -likelihood->testNNI(entry.second.rearr1);
+        double lnl2 = -likelihood->testNNI(entry.second.rearr2);
+        bpp::Number<double> abayes = 1 / (1 + exp(lnl1) + exp(lnl2));
+        tree.setBranchProperty(entry.first, TreeTools::BOOTSTRAP, abayes);
+    }
+
+    string s = TreeTools::treeToParenthesis(tree, true, TreeTools::BOOTSTRAP);
+    s.erase(s.find_last_not_of(" \n\r\t")+1);
+    return s;
+}

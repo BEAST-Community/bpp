@@ -1,0 +1,1 @@
+configure_file(ens_aln.phy ${CMAKE_CURRENT_BINARY_DIR}/ens_aln.phy COPYONLY)

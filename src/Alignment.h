@@ -23,6 +23,11 @@
 using namespace std;
 using namespace bpp;
 
+struct nniIDs {
+    int rearr1;
+    int rearr2;
+};
+
 class Alignment {
     public :
         Alignment();
@@ -89,6 +94,7 @@ class Alignment {
         void optimise_topology(bool fix_model_params);
         double get_likelihood();
         string get_tree();
+        string get_abayes_tree();
 
         // Simulator
         void write_simulation(size_t nsites, string filename, string file_format, bool interleaved=true);
@@ -124,7 +130,9 @@ class Alignment {
         shared_ptr<AbstractDiscreteDistribution> rates;
         shared_ptr<DistanceMatrix> distances;
         shared_ptr<DistanceMatrix> variances;
+    public:
         shared_ptr<NNIHomogeneousTreeLikelihood> likelihood;
+    private:
         shared_ptr<HomogeneousSequenceSimulator> simulator;
         unique_ptr<ParameterList> _get_parameter_list();
         string _name;

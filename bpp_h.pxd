@@ -69,6 +69,7 @@ cdef extern from "src/Alignment.h":
         void optimise_topology(bool fix_model_params) except +
         double get_likelihood() except +
         libcpp_string get_tree() except +
+        libcpp_string get_abayes_tree() except +
 
         # Simulator
         void write_simulation(size_t nsites, libcpp_string filename, libcpp_string file_format, bool interleaved) except +
