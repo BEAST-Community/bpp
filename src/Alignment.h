@@ -130,9 +130,7 @@ class Alignment {
         shared_ptr<AbstractDiscreteDistribution> rates;
         shared_ptr<DistanceMatrix> distances;
         shared_ptr<DistanceMatrix> variances;
-    public:
         shared_ptr<NNIHomogeneousTreeLikelihood> likelihood;
-    private:
         shared_ptr<HomogeneousSequenceSimulator> simulator;
         unique_ptr<ParameterList> _get_parameter_list();
         string _name;
