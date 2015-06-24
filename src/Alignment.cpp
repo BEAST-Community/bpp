@@ -348,49 +348,66 @@ vector<string> Alignment::get_parameter_names() {
 }
 
 void Alignment::set_parameter(string name, double value) {
+    ParameterList pl;
+    enum class THING{LIKELIHOOD, RATES, MODEL};  // The 'thing' to update after setting parameter
+    THING thing;
     if (likelihood) {
-        auto pl = likelihood->getParameters();
-        auto names = pl.getParameterNames();
-        for (auto& n : names) {
-            cout << n << endl;
-        }
-        if (pl.hasParameter(name)) {
-            cout << "Found parameter " << name << endl;
-            pl.setParameterValue(name, value);
-            likelihood->setParametersValues(pl);
-            return;
-        }
+        pl = likelihood->getParameters();
+        thing = THING::LIKELIHOOD;
     }
-    if (rates) {
-        cout << "We have rates" << endl;
-        auto pl = rates->getIndependentParameters();
-        auto names = pl.getParameterNames();
-        for (auto& n : names) {
-            cout << n << endl;
-        }
-        if (pl.hasParameter(name)) {
-            cout << "Found parameter " << name << endl;
-            pl.setParameterValue(name, value);
+    else if (rates) {
+        pl = rates->getIndependentParameters();
+        thing = THING::RATES;
+    }
+    else if (model) {
+        pl = model->getIndependentParameters();
+        thing = THING::MODEL;
+    }
+    else {
+        throw Exception("Could not retrieve parameter list");
+    }
+    if (pl.hasParameter(name)) {
+        pl.setParameterValue(name, value);
+        switch (thing) {
+        case THING::LIKELIHOOD:
+            likelihood->setParametersValues(pl);
+            break;
+
+        case THING::RATES:
             rates->setParametersValues(pl);
             rates->fireParameterChanged(pl);
-            return;
-        }
-    }
-    if (model) {
-        cout << "We have model" << endl;
-        auto pl = model->getIndependentParameters();
-        auto names = pl.getParameterNames();
-        for (auto& n : names) {
-            cout << n << endl;
-        }
-        if (pl.hasParameter(name)) {
-            cout << "Found parameter " << name << endl;
-            pl.setParameterValue(name, value);
+            break;
+
+        case THING::MODEL:
             model->setParametersValues(pl);
             model->fireParameterChanged(pl);
-            return;
+            break;
         }
-        return;
+    }
+    else {
+        throw Exception("Could not find that parameter");
+    }
+}
+
+double Alignment::get_parameter(string name) {
+    ParameterList pl;
+    if (likelihood) {
+        pl = likelihood->getParameters();
+    }
+    else if (rates) {
+        pl = rates->getIndependentParameters();
+    }
+    else if (model) {
+        pl = model->getIndependentParameters();
+    }
+    else {
+        throw Exception("Could not retrieve parameter list");
+    }
+    if (pl.hasParameter(name)) {
+        return pl.getParameterValue(name);
+    }
+    else {
+        throw Exception("Could not find that parameter");
     }
 }
 
@@ -472,18 +489,48 @@ size_t Alignment::get_number_of_distinct_sites() {
     return distinct_sites;
 }
 
+vector<vector<double>> Alignment::get_p_matrix(double time) {
+    if(!model) throw Exception("No model has been set.");
+    RowMatrix<double> pijt = model->getPij_t(time);
+    size_t nrow = pijt.getNumberOfRows();
+    size_t ncol = pijt.getNumberOfColumns();
+    auto p = vector<vector<double>>(nrow, vector<double>(ncol, 0));
+    for (size_t i = 0; i < nrow; ++i) {
+        for (size_t j = 0; j < ncol; ++j) {
+            p[i][j] = pijt(i, j);
+        }
+    }
+    return p;
+}
+
+
+vector<vector<double>> Alignment::get_q_matrix() {
+    if(!model) throw Exception("No model has been set.");
+    RowMatrix<double> gen = model->getGenerator();
+    size_t nrow = gen.getNumberOfRows();
+    size_t ncol = gen.getNumberOfColumns();
+    auto q = vector<vector<double>>(nrow, vector<double>(ncol, 0));
+    for (size_t i = 0; i < nrow; ++i) {
+        for (size_t j = 0; j < ncol; ++j) {
+            q[i][j] = gen(i, j);
+        }
+    }
+    return q;
+}
+
 vector<vector<double>> Alignment::get_exchangeabilities() {
     if(!model) throw Exception("No model has been set.");
     RowMatrix<double> exch = model->getExchangeabilityMatrix();
-    vector<vector<double>> matrix;
-    for (size_t i = 0; i < exch.getNumberOfRows(); ++i) {
+    size_t nrow = exch.getNumberOfRows();
+    size_t ncol = exch.getNumberOfColumns();
+    auto s = vector<vector<double>>(nrow, vector<double>(ncol, 0));
+    for (size_t i = 0; i < nrow; ++i) {
         vector<double> row;
-        for (size_t j = 0; j < exch.getNumberOfColumns(); ++j) {
-            row.push_back(exch(i, j));
+        for (size_t j = 0; j < ncol; ++j) {
+            s[i][j] = exch(i, j);
         }
-        matrix.push_back(row);
     }
-    return matrix;
+    return s;
 }
 
 string Alignment::get_substitution_model() {

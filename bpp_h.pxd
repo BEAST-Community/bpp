@@ -32,7 +32,10 @@ cdef extern from "src/Alignment.h":
         libcpp_vector[double] get_empirical_frequencies(double pseudocount) except +
         libcpp_vector[double] get_empirical_frequencies() except +
         libcpp_vector[libcpp_string] get_names() except +
+        double get_parameter(libcpp_string name) except +
         libcpp_vector[libcpp_string] get_parameter_names() except +
+        libcpp_vector[libcpp_vector[double]] get_p_matrix(double time) except +
+        libcpp_vector[libcpp_vector[double]] get_q_matrix() except +
         libcpp_vector[libcpp_vector[double]] get_exchangeabilities() except +
         libcpp_string get_namespace() except +
         libcpp_string get_substitution_model() except +

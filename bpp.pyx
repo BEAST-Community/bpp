@@ -68,6 +68,17 @@ cdef class Alignment:
         cdef list py_result = _r
         return py_result
 
+    def get_p_matrix(self, float time):
+        assert isinstance(time, float), 'arg alpha wrong type'
+        _r = self.inst.get().get_p_matrix((<double>time))
+        cdef list py_result = _r
+        return array(py_result)
+
+    def get_q_matrix(self):
+        _r = self.inst.get().get_q_matrix()
+        cdef list py_result = _r
+        return array(py_result)
+
     def get_exchangeabilities(self):
         _r = self.inst.get().get_exchangeabilities()
         cdef list py_result = _r
@@ -151,6 +162,13 @@ cdef class Alignment:
         _r = self.inst.get().get_names()
         cdef list py_result = _r
         return py_result
+
+    def get_parameter(self, bytes name):
+        assert isinstance(name, bytes), 'arg name wrong type'
+        cdef double _r = self.inst.get().get_parameter((<libcpp_string>name))
+        py_result = <double>_r
+        return py_result
+
 
     def get_parameter_names(self):
         _r = self.inst.get().get_parameter_names()
