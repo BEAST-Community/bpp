@@ -90,6 +90,7 @@ class Alignment {
         // Likelihood
         void initialise_likelihood();
         void initialise_likelihood(string tree);
+        void optimise_branch_lengths();
         void optimise_parameters(bool fix_branch_lengths);
         void optimise_topology(bool fix_model_params);
         double get_likelihood();

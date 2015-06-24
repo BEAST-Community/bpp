@@ -65,6 +65,7 @@ cdef extern from "src/Alignment.h":
         # Likelihood
         void initialise_likelihood() except +
         void initialise_likelihood(libcpp_string tree) except +
+        void optimise_branch_lengths() except +
         void optimise_parameters(bool fix_branch_lengths) except +
         void optimise_topology(bool fix_model_params) except +
         double get_likelihood() except +

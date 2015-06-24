@@ -184,6 +184,9 @@ cdef class Alignment:
         py_result = <size_t>_r
         return py_result
 
+    def optimise_branch_lengths(self):
+        self.inst.get().optimise_branch_lengths()
+
     def optimise_topology(self,  fix_model_params ):
         assert isinstance(fix_model_params, (int, long)), 'arg fix_model_params wrong type'
 

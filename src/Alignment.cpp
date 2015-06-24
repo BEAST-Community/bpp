@@ -749,6 +749,16 @@ void Alignment::initialise_likelihood(string tree) {
     likelihood->initialize();
 }
 
+void Alignment::optimise_branch_lengths() {
+    if (!likelihood) {
+        cerr << "Likelihood calculator not set - call initialise_likelihood" << endl;
+        throw Exception("Uninitialised likelihood error");
+    }
+    ParameterList pl;
+    pl = likelihood->getBranchLengthsParameters();
+    OptimizationTools::optimizeNumericalParameters2(likelihood.get(), pl, 0, 0.001, 1000000, NULL, NULL, false, false, 10);
+}
+
 void Alignment::optimise_parameters(bool fix_branch_lengths) {
     if (!likelihood) {
         cerr << "Likelihood calculator not set - call initialise_likelihood" << endl;
