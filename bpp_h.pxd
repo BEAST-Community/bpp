@@ -32,7 +32,10 @@ cdef extern from "src/Alignment.h":
         libcpp_vector[double] get_empirical_frequencies(double pseudocount) except +
         libcpp_vector[double] get_empirical_frequencies() except +
         libcpp_vector[libcpp_string] get_names() except +
+        double get_parameter(libcpp_string name) except +
         libcpp_vector[libcpp_string] get_parameter_names() except +
+        libcpp_vector[libcpp_vector[double]] get_p_matrix(double time) except +
+        libcpp_vector[libcpp_vector[double]] get_q_matrix() except +
         libcpp_vector[libcpp_vector[double]] get_exchangeabilities() except +
         libcpp_string get_namespace() except +
         libcpp_string get_substitution_model() except +
@@ -65,6 +68,7 @@ cdef extern from "src/Alignment.h":
         # Likelihood
         void initialise_likelihood() except +
         void initialise_likelihood(libcpp_string tree) except +
+        void optimise_branch_lengths() except +
         void optimise_parameters(bool fix_branch_lengths) except +
         void optimise_topology(bool fix_model_params) except +
         double get_likelihood() except +

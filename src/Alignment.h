@@ -58,6 +58,7 @@ class Alignment {
         vector<double> get_empirical_frequencies(double pseudocount);
         vector<double> get_empirical_frequencies();
         vector<string> get_names();
+        double get_parameter(string name);
         vector<string> get_parameter_names();
         size_t get_number_of_sequences();
         vector<string> get_sites();
@@ -65,6 +66,8 @@ class Alignment {
         size_t get_number_of_free_parameters();
         string get_substitution_model();
         vector<vector<double>> get_exchangeabilities();
+        vector<vector<double>> get_q_matrix();
+        vector<vector<double>> get_p_matrix(double time);
         string get_namespace();
         vector<string> get_informative_sites(bool exclude_gaps);
         size_t get_number_of_informative_sites(bool exclude_gaps);
@@ -90,6 +93,7 @@ class Alignment {
         // Likelihood
         void initialise_likelihood();
         void initialise_likelihood(string tree);
+        void optimise_branch_lengths();
         void optimise_parameters(bool fix_branch_lengths);
         void optimise_topology(bool fix_model_params);
         double get_likelihood();
