@@ -12,8 +12,8 @@
 #include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
 #include <Bpp/Phyl/BipartitionList.h>
-#include <Bpp/Phyl/Model/FrequenciesSet/NucleotideFrequenciesSet.h>
-#include <Bpp/Phyl/Model/FrequenciesSet/ProteinFrequenciesSet.h>
+//#include <Bpp/Phyl/Model/FrequenciesSet/NucleotideFrequenciesSet.h>
+//#include <Bpp/Phyl/Model/FrequenciesSet/ProteinFrequenciesSet.h>
 #include <Bpp/Phyl/Distance/DistanceEstimation.h>
 #include <Bpp/Phyl/Distance/BioNJ.h>
 #include <Bpp/Phyl/Io/Newick.h>
