@@ -1,5 +1,6 @@
 *.o
 pairdist.cpp
+bpp.cpp
 src/test
 # Byte-compiled / optimized / DLL files
 __pycache__/
