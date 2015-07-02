@@ -12,7 +12,7 @@
 #include "Bpp/Seq/Alphabet/AlphabetTools.h"
 #include "Bpp/Seq/Alphabet/AlphabetExceptions.h"
 #include "Bpp/Seq/GeneticCode/GeneticCode.h"
-#include "Bpp/Phyl/Model/SubstitutionModel.h"
+#include "Bpp/Phyl/Model/AbstractSubstitutionModel.h"
 #include <Bpp/Phyl/Model/Nucleotide/JCnuc.h>
 #include <Bpp/Phyl/Model/Nucleotide/K80.h>
 #include <Bpp/Phyl/Model/Nucleotide/HKY85.h>
@@ -56,9 +56,9 @@ class ModelFactory {
 public:
     ModelFactory();
     virtual ~ModelFactory();
-    static shared_ptr<SubstitutionModel> create(string model_name) throw (Exception);
-    static shared_ptr<SubstitutionModel> create(Model model, bool parameterise_freqs) throw (Exception);
-    static shared_ptr<SubstitutionModel> create(string model_name, vector<double> freqs) throw (Exception);
+    static shared_ptr<AbstractSubstitutionModel> create(string model_name) throw (Exception);
+    static shared_ptr<AbstractSubstitutionModel> create(Model model, bool parameterise_freqs) throw (Exception);
+    static shared_ptr<AbstractSubstitutionModel> create(string model_name, vector<double> freqs) throw (Exception);
 };
 
 #endif /* MODELFACTORY_H_ */

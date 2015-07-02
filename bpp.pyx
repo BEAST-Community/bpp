@@ -68,6 +68,17 @@ cdef class Alignment:
         cdef list py_result = _r
         return py_result
 
+    def get_p_matrix(self, float time):
+        assert isinstance(time, float), 'arg alpha wrong type'
+        _r = self.inst.get().get_p_matrix((<double>time))
+        cdef list py_result = _r
+        return array(py_result)
+
+    def get_q_matrix(self):
+        _r = self.inst.get().get_q_matrix()
+        cdef list py_result = _r
+        return array(py_result)
+
     def get_exchangeabilities(self):
         _r = self.inst.get().get_exchangeabilities()
         cdef list py_result = _r
@@ -79,6 +90,7 @@ cdef class Alignment:
         cdef libcpp_vector[double] v0 = in_0
 
         self.inst.get().set_rates(v0, (<libcpp_string>order))
+
 
 
     def get_number_of_sites(self):
@@ -116,25 +128,87 @@ cdef class Alignment:
         assert isinstance(filename, bytes), 'arg filename wrong type'
         assert isinstance(file_format, bytes), 'arg file_format wrong type'
         assert isinstance(interleaved, (int, long)), 'arg interleaved wrong type'
-
-
-
-
-        self.inst.get().read_alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<bool>interleaved))
+        self.inst.get().read_alignment((<libcpp_string>filename),
+                                       (<libcpp_string>file_format),
+                                       (<bool>interleaved))
 
     def read_alignment(self, bytes filename , bytes file_format , bytes datatype ,  interleaved ):
         assert isinstance(filename, bytes), 'arg filename wrong type'
         assert isinstance(file_format, bytes), 'arg file_format wrong type'
         assert isinstance(datatype, bytes), 'arg datatype wrong type'
         assert isinstance(interleaved, (int, long)), 'arg interleaved wrong type'
+        self.inst.get().read_alignment((<libcpp_string>filename),
+                                       (<libcpp_string>file_format),
+                                       (<libcpp_string>datatype),
+                                       (<bool>interleaved))
 
 
+    def initialise_parsimony(self, bytes tree, verbose, include_gaps):
+        """
+        Create the parsimony model
+        """
+        assert isinstance(tree, bytes), 'arg tree wrong type'
+        assert isinstance(verbose, (int, long)), 'arg verbose wrong type (expected a bool)'
+        assert isinstance(include_gaps, (int, long)), 'arg include_gaps wrong type (expected a bool)'
+        self.inst.get().initialise_parsimony((<libcpp_string>tree),
+                                             (<bool>verbose),
+                                             (<bool>include_gaps))
 
 
-        self.inst.get().read_alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<libcpp_string>datatype), (<bool>interleaved))
+    def get_parsimony_score(self):
+        """
+        Get the parsimony score of the current parsimony tree
+        (note: the parsimony tree and the likelihood tree, if one
+        exists, are independent objects)
+        """
+        cdef unsigned int _r = self.inst.get().get_parsimony_score()
+        py_result = <int>_r
+        return py_result
+
+
+    def get_parsimony_tree(self):
+        """
+        Get the newick representation of the current parsimony tree
+        (note: the parsimony tree and the likelihood tree, if one
+        exists, are independent objects)
+        """
+        cdef libcpp_string _r = self.inst.get().get_parsimony_tree()
+        py_result = <libcpp_string>_r
+        return py_result
+
+    
+    def optimise_parsimony(self, verbose):
+        assert isinstance(verbose, (int, long)), 'arg verbose wrong type (expected uint)'
+        self.inst.get().optimise_parsimony((<unsigned int>verbose))
+
+
+    def test_nni(self, int nodeid):
+        assert isinstance(nodeid, int), 'arg nodeid wrong type'
+        cdef double _r = self.inst.get().test_nni(nodeid)
+        py_result = <double>_r
+        return py_result
+
+    def do_nni(self, int nodeid):
+        assert isinstance(nodeid, int), 'arg nodeid wrong type'
+        self.inst.get().do_nni(nodeid)
+
+    def commit_topology(self):
+        self.inst.get().commit_topology()
 
     def get_names(self):
         _r = self.inst.get().get_names()
+        cdef list py_result = _r
+        return py_result
+
+    def get_parameter(self, bytes name):
+        assert isinstance(name, bytes), 'arg name wrong type'
+        cdef double _r = self.inst.get().get_parameter((<libcpp_string>name))
+        py_result = <double>_r
+        return py_result
+
+
+    def get_parameter_names(self):
+        _r = self.inst.get().get_parameter_names()
         cdef list py_result = _r
         return py_result
 
@@ -165,6 +239,9 @@ cdef class Alignment:
         py_result = <size_t>_r
         return py_result
 
+    def optimise_branch_lengths(self):
+        self.inst.get().optimise_branch_lengths()
+
     def optimise_topology(self,  fix_model_params ):
         assert isinstance(fix_model_params, (int, long)), 'arg fix_model_params wrong type'
 
@@ -182,6 +259,10 @@ cdef class Alignment:
 
     def _print_params(self):
         self.inst.get()._print_params()
+
+    def _print_node(self, int nodeid):
+        assert isinstance(nodeid, int), 'arg nodeid wrong type'
+        self.inst.get()._print_node(nodeid)
 
     def chkdst(self):
         self.inst.get().chkdst()
@@ -220,6 +301,11 @@ cdef class Alignment:
 
     def get_tree(self):
         cdef libcpp_string _r = self.inst.get().get_tree()
+        py_result = <libcpp_string>_r
+        return py_result
+
+    def get_abayes_tree(self):
+        cdef libcpp_string _r = self.inst.get().get_abayes_tree()
         py_result = <libcpp_string>_r
         return py_result
 
@@ -296,6 +382,12 @@ cdef class Alignment:
         assert isinstance(alpha, float), 'arg alpha wrong type'
 
         self.inst.get().set_alpha((<double>alpha))
+
+    def set_parameter(self, bytes name, double value):
+        assert isinstance(value, float), 'arg value wrong type'
+        assert isinstance(name, bytes), 'arg name wrong type'
+
+        self.inst.get().set_parameter(<libcpp_string>name, <double>value)
 
     def _get_bionj_tree_0(self):
         cdef libcpp_string _r = self.inst.get().get_bionj_tree()

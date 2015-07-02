@@ -11,15 +11,18 @@
 
 #include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
-#include <Bpp/Phyl/Model/FrequenciesSet/NucleotideFrequenciesSet.h>
-#include <Bpp/Phyl/Model/FrequenciesSet/ProteinFrequenciesSet.h>
+#include <Bpp/Phyl/BipartitionList.h>
 #include <Bpp/Phyl/Distance/DistanceEstimation.h>
 #include <Bpp/Phyl/Distance/BioNJ.h>
 #include <Bpp/Phyl/Io/Newick.h>
 #include <Bpp/Phyl/OptimizationTools.h>
 #include <Bpp/Phyl/Simulation/HomogeneousSequenceSimulator.h>
 #include <Bpp/Phyl/Likelihood/NNIHomogeneousTreeLikelihood.h>
+#include <Bpp/Phyl/TopologySearch.h>
+#include <Bpp/Phyl/Node.h>
 #include <Bpp/Phyl/TreeTools.h>
+#include <Bpp/Phyl/TreeTemplateTools.h>
+#include <Bpp/Phyl/TreeExceptions.h>
 #include <Bpp/Seq/Alphabet/AlphabetTools.h>
 #include <Bpp/Seq/Container/CompressedVectorSiteContainer.h>
 #include <Bpp/Seq/Container/SiteContainerIterator.h>
@@ -85,6 +88,11 @@ void ensure_minval_and_sum(std::vector<double>& v, double minval) {
     }
 }
 
+// Delete whitespace at end of string
+void strip(std::string& s) {
+    s.erase(s.find_last_not_of(" \n\r\t")+1);
+}
+
 Alignment::Alignment() {}
 
 Alignment::Alignment(vector<Alignment>& alignments) {
@@ -102,14 +110,23 @@ Alignment::Alignment(vector<pair<string, string>>& headers_sequences, string dat
 }
 
 Alignment::Alignment(string filename, string file_format, bool interleaved) {
+    strip(filename);  // Delete whitespace at end of string
+    strip(file_format);
     read_alignment(filename, file_format, interleaved);
 }
 
 Alignment::Alignment(string filename, string file_format, string datatype, bool interleaved) {
+    strip(filename);
+    strip(file_format);
+    strip(datatype);
     read_alignment(filename, file_format, datatype, interleaved);
 }
 
 Alignment::Alignment(string filename, string file_format, string datatype, string model_name, bool interleaved) {
+    strip(filename);
+    strip(file_format);
+    strip(datatype);
+    strip(model_name);
     read_alignment(filename, file_format, datatype, interleaved);
     set_gamma_rate_model();
     try {
@@ -122,12 +139,17 @@ Alignment::Alignment(string filename, string file_format, string datatype, strin
 }
 
 void Alignment::read_alignment(string filename, string file_format, bool interleaved) {
+    strip(filename);
+    strip(file_format);
     sequences = SiteContainerBuilder::read_alignment(filename, file_format, interleaved);
     _clear_distances();
     _clear_likelihood();
 }
 
 void Alignment::read_alignment(string filename, string file_format, string datatype, bool interleaved) {
+    strip(filename);
+    strip(file_format);
+    strip(datatype);
     sequences = SiteContainerBuilder::read_alignment(filename, file_format, datatype, interleaved);
     _clear_distances();
     _clear_likelihood();
@@ -139,6 +161,8 @@ void Alignment::sort_alignment(bool ascending) {
 }
 
 void Alignment::write_alignment(string filename, string file_format, bool interleaved) {
+    strip(filename);
+    strip(file_format);
     if (file_format == "fas" || file_format == "fasta") {
         _write_fasta(sequences, filename);
     }
@@ -152,6 +176,7 @@ void Alignment::write_alignment(string filename, string file_format, bool interl
 }
 
 void Alignment::set_substitution_model(string model_name) {
+    strip(model_name);
     if (sequences) _check_compatible_model(model_name);
     model = ModelFactory::create(model_name);
     _clear_likelihood();
@@ -322,6 +347,150 @@ vector<string> Alignment::get_names() {
     return sequences->getSequencesNames();
 }
 
+unique_ptr<ParameterList> Alignment::_get_parameter_list() {
+    auto pl = make_unique<ParameterList>();
+    if (likelihood) {
+        pl->addParameters(likelihood->getParameters());
+    }
+    else {
+        if (rates) {
+            pl->addParameters(rates->getIndependentParameters());
+        }
+        if (model) {
+            pl->addParameters(model->getIndependentParameters());
+        }
+    }
+    return pl;
+}
+
+vector<string> Alignment::get_parameter_names() {
+    auto pl = _get_parameter_list();
+    return pl->getParameterNames();
+}
+
+void Alignment::set_parameter(string name, double value) {
+    ParameterList pl;
+    enum class THING{LIKELIHOOD, RATES, MODEL};  // The 'thing' to update after setting parameter
+    THING thing;
+    if (likelihood) {
+        pl = likelihood->getParameters();
+        thing = THING::LIKELIHOOD;
+    }
+    else if (rates) {
+        pl = rates->getIndependentParameters();
+        thing = THING::RATES;
+    }
+    else if (model) {
+        pl = model->getIndependentParameters();
+        thing = THING::MODEL;
+    }
+    else {
+        throw Exception("Could not retrieve parameter list");
+    }
+    if (pl.hasParameter(name)) {
+        pl.setParameterValue(name, value);
+        switch (thing) {
+        case THING::LIKELIHOOD:
+            likelihood->setParametersValues(pl);
+            break;
+
+        case THING::RATES:
+            rates->setParametersValues(pl);
+            rates->fireParameterChanged(pl);
+            break;
+
+        case THING::MODEL:
+            model->setParametersValues(pl);
+            model->fireParameterChanged(pl);
+            break;
+        }
+    }
+    else {
+        throw Exception("Could not find that parameter");
+    }
+}
+
+double Alignment::get_parameter(string name) {
+    ParameterList pl;
+    if (likelihood) {
+        pl = likelihood->getParameters();
+    }
+    else if (rates) {
+        pl = rates->getIndependentParameters();
+    }
+    else if (model) {
+        pl = model->getIndependentParameters();
+    }
+    else {
+        throw Exception("Could not retrieve parameter list");
+    }
+    if (pl.hasParameter(name)) {
+        return pl.getParameterValue(name);
+    }
+    else {
+        throw Exception("Could not find that parameter");
+    }
+}
+
+double Alignment::test_nni(int nodeid) {
+    // Checks:
+    if (!likelihood) throw Exception("This instance has no likelihood model");
+    int num_nodes = likelihood->getTree().getNumberOfNodes() - 1;
+    if (nodeid > num_nodes) {
+        stringstream ss;
+        ss << "Max nodeid = " << num_nodes;
+        throw Exception(ss.str());
+    }
+    // OK
+
+    return likelihood->testNNI(nodeid);
+}
+
+void Alignment::do_nni(int nodeid) {
+    // Checks:
+    if (!likelihood) throw Exception("This instance has no likelihood model");
+    int num_nodes = likelihood->getTree().getNumberOfNodes() - 1;
+    if (nodeid > num_nodes) {
+        stringstream ss;
+        ss << "Max nodeid = " << num_nodes;
+        throw Exception(ss.str());
+    }
+    // OK
+    likelihood->doNNI(nodeid);
+}
+
+void Alignment::commit_topology() {
+    // Checks:
+    if (!likelihood) throw Exception("This instance has no likelihood model");
+    // OK
+
+    likelihood->topologyChangePerformed(TopologyChangeEvent());
+}
+
+void Alignment::_print_node(int nodeid) {
+    // Checks:
+    if (!likelihood) throw Exception("This instance has no likelihood model");
+    int num_nodes = likelihood->getTree().getNumberOfNodes() - 1;
+    if (nodeid > num_nodes) {
+        stringstream ss;
+        ss << "Max nodeid = " << num_nodes;
+        throw Exception(ss.str());
+    }
+    // OK
+    auto tt = TreeTemplate<Node>(likelihood->getTree());
+    auto node = tt.getNode(nodeid);
+    auto father = node->getFather();
+    cout << "NODE " << nodeid << endl;
+    if (father!=0) {
+        cout << "Father id = " << father->getId() << endl;
+        cout << "distance = " << node->getDistanceToFather() << endl;;
+    }
+    if (node->isLeaf()) {
+        cout << "Node is leaf. Label = " << node->getName() << endl;
+    }
+}
+
+
 size_t Alignment::get_number_of_sequences() {
     if (!sequences) throw Exception("This instance has no sequences");
     return sequences->getNumberOfSequences();
@@ -341,18 +510,48 @@ size_t Alignment::get_number_of_distinct_sites() {
     return distinct_sites;
 }
 
+vector<vector<double>> Alignment::get_p_matrix(double time) {
+    if(!model) throw Exception("No model has been set.");
+    RowMatrix<double> pijt = model->getPij_t(time);
+    size_t nrow = pijt.getNumberOfRows();
+    size_t ncol = pijt.getNumberOfColumns();
+    auto p = vector<vector<double>>(nrow, vector<double>(ncol, 0));
+    for (size_t i = 0; i < nrow; ++i) {
+        for (size_t j = 0; j < ncol; ++j) {
+            p[i][j] = pijt(i, j);
+        }
+    }
+    return p;
+}
+
+
+vector<vector<double>> Alignment::get_q_matrix() {
+    if(!model) throw Exception("No model has been set.");
+    RowMatrix<double> gen = model->getGenerator();
+    size_t nrow = gen.getNumberOfRows();
+    size_t ncol = gen.getNumberOfColumns();
+    auto q = vector<vector<double>>(nrow, vector<double>(ncol, 0));
+    for (size_t i = 0; i < nrow; ++i) {
+        for (size_t j = 0; j < ncol; ++j) {
+            q[i][j] = gen(i, j);
+        }
+    }
+    return q;
+}
+
 vector<vector<double>> Alignment::get_exchangeabilities() {
     if(!model) throw Exception("No model has been set.");
     RowMatrix<double> exch = model->getExchangeabilityMatrix();
-    vector<vector<double>> matrix;
-    for (size_t i = 0; i < exch.getNumberOfRows(); ++i) {
+    size_t nrow = exch.getNumberOfRows();
+    size_t ncol = exch.getNumberOfColumns();
+    auto s = vector<vector<double>>(nrow, vector<double>(ncol, 0));
+    for (size_t i = 0; i < nrow; ++i) {
         vector<double> row;
-        for (size_t j = 0; j < exch.getNumberOfColumns(); ++j) {
-            row.push_back(exch(i, j));
+        for (size_t j = 0; j < ncol; ++j) {
+            s[i][j] = exch(i, j);
         }
-        matrix.push_back(row);
     }
-    return matrix;
+    return s;
 }
 
 string Alignment::get_substitution_model() {
@@ -403,8 +602,8 @@ size_t Alignment::get_number_of_free_parameters() {
 
 void Alignment::_print_params() {
     if (likelihood) {
-            ParameterList pl = likelihood->getParameters();
-            pl.printParameters(cout);
+        ParameterList pl = likelihood->getParameters();
+        pl.printParameters(cout);
     }
     else if (rates && model) {
          ParameterList pl = rates->getIndependentParameters();
@@ -587,6 +786,7 @@ void Alignment::initialise_likelihood() {
 }
 
 void Alignment::initialise_likelihood(string tree) {
+    strip(tree);
     if (!model) {
         cerr << "Model not set" << endl;
         throw Exception("Model not set error");
@@ -616,6 +816,16 @@ void Alignment::initialise_likelihood(string tree) {
     SiteContainerTools::changeGapsToUnknownCharacters(*sites_);
     likelihood = make_shared<NNIHomogeneousTreeLikelihood>(*liktree, *sites_, model.get(), rates.get(), true, false);
     likelihood->initialize();
+}
+
+void Alignment::optimise_branch_lengths() {
+    if (!likelihood) {
+        cerr << "Likelihood calculator not set - call initialise_likelihood" << endl;
+        throw Exception("Uninitialised likelihood error");
+    }
+    ParameterList pl;
+    pl = likelihood->getBranchLengthsParameters();
+    OptimizationTools::optimizeNumericalParameters2(likelihood.get(), pl, 0, 0.001, 1000000, NULL, NULL, false, false, 10);
 }
 
 void Alignment::optimise_parameters(bool fix_branch_lengths) {
@@ -659,20 +869,60 @@ string Alignment::get_tree() {
     if (!likelihood) {
         throw Exception("Likelihood calculator not set - call initialise_likelihood");
     }
-    auto *tree = likelihood->getTree().clone();
-    stringstream ss;
-    Newick treeWriter;
-    treeWriter.write(*tree, ss);
-    delete tree;
-    string s{ss.str()};
+    string s = TreeTools::treeToParenthesis(likelihood->getTree());
     s.erase(s.find_last_not_of(" \n\r\t")+1);
     return s;
+}
+
+// Parsimony
+void Alignment::initialise_parsimony(string tree, bool verbose, bool include_gaps) {
+    if (!sequences) {
+        cerr << "No sequences" << endl;
+        throw Exception("This instance has no sequences");
+    }
+    unique_ptr<Tree> liktree;
+    auto reader = make_shared<Newick>(false);
+    if (_is_file(tree)) {
+        liktree = unique_ptr<Tree>(reader->read(tree));
+    }
+    else if (_is_tree_string(tree)) {
+        stringstream ss{tree};
+        liktree = unique_ptr<Tree>(reader->read(ss));
+    }
+    else {
+        cerr << "Couldn\'t understand this tree: " << tree << endl;
+        throw Exception("Tree error");
+    }
+    strip(tree);
+    auto sites_ = make_unique<CompressedVectorSiteContainer>(*sequences);
+    SiteContainerTools::changeGapsToUnknownCharacters(*sites_);
+    parsimony = make_shared<DRTreeParsimonyScore>(*liktree, *sites_, verbose, include_gaps);
+}
+
+unsigned int Alignment::get_parsimony_score() {
+    if (!parsimony) {
+        throw Exception("No parsimony model has been initialised");
+    }
+    return parsimony->getScore();
+}
+
+string Alignment::get_parsimony_tree() {
+    if (!parsimony) {
+        throw Exception("Parsimony calculator not set - call initialise_parsimony");
+    }
+    string s = TreeTools::treeToParenthesis(parsimony->getTree());
+    s.erase(s.find_last_not_of(" \n\r\t")+1);
+    return s;
+}
+
+void Alignment::optimise_parsimony(unsigned int verbose) {
+    parsimony = make_shared<DRTreeParsimonyScore>(*OptimizationTools::optimizeTreeNNI(parsimony.get(), verbose));
 }
 
 // Simulator
 void Alignment::write_simulation(size_t nsites, string filename, string file_format, bool interleaved) {
     simulate(nsites);
-
+    
     if (file_format == "fas" || file_format == "fasta") {
         _write_fasta(simulated_sequences, filename);
     }
@@ -894,7 +1144,7 @@ shared_ptr<DistanceMatrix> Alignment::_create_distance_matrix(vector<vector<doub
     size_t n = sequences->getNumberOfSequences();
     if (matrix.size() != n) throw Exception("Matrix wrong size error");
     vector<string> names = sequences->getSequencesNames();
-    shared_ptr<DistanceMatrix> dm = make_shared<DistanceMatrix>(names);
+    auto dm = make_shared<DistanceMatrix>(names);
     for (size_t i=0; i < matrix.size(); ++i) {
         auto row = matrix[i];
         for (size_t j=i+1; j < row.size(); ++j) {
@@ -1049,6 +1299,34 @@ string Alignment::_computeTree(DistanceMatrix dists, DistanceMatrix vars) throw 
     treeWriter.write(*tree_, ss);
     delete tree_;
     string s{ss.str()};
+    s.erase(s.find_last_not_of(" \n\r\t")+1);
+    return s;
+}
+
+string Alignment::get_abayes_tree() {
+    TreeTemplate<Node> tree = TreeTemplate<Node>(likelihood->getTree());
+    std::map<int, nniIDs> nniMap;
+
+    for (auto& node : tree.getNodes()) {
+        if (node->hasFather() && node->getFather()->hasFather()) {
+            auto search = nniMap.find(node->getFatherId());
+            if (search == nniMap.end()) {
+                nniMap[node->getFatherId()].rearr1 = node->getId();
+            }
+            else {
+                search->second.rearr2 = node->getId();
+            };
+        }
+    }
+
+    for (auto entry : nniMap) {
+        double lnl1 = -likelihood->testNNI(entry.second.rearr1);
+        double lnl2 = -likelihood->testNNI(entry.second.rearr2);
+        bpp::Number<double> abayes = 1 / (1 + exp(lnl1) + exp(lnl2));
+        tree.setBranchProperty(entry.first, TreeTools::BOOTSTRAP, abayes);
+    }
+
+    string s = TreeTools::treeToParenthesis(tree, true, TreeTools::BOOTSTRAP);
     s.erase(s.find_last_not_of(" \n\r\t")+1);
     return s;
 }

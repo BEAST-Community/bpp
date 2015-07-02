@@ -9,11 +9,12 @@
 #define _ALIGNMENT_H_
 
 #include <Bpp/Seq/Container/VectorSiteContainer.h>
-#include <Bpp/Phyl/Model/SubstitutionModel.h>
+#include <Bpp/Phyl/Model/AbstractSubstitutionModel.h>
 #include <Bpp/Numeric/Prob/AbstractDiscreteDistribution.h>
 #include <Bpp/Seq/DistanceMatrix.h>
 #include <Bpp/Phyl/Likelihood/NNIHomogeneousTreeLikelihood.h>
 #include <Bpp/Phyl/Simulation/HomogeneousSequenceSimulator.h>
+#include <Bpp/Phyl/Parsimony/DRTreeParsimonyScore.h>
 
 #include <iostream>
 #include <map>
@@ -22,6 +23,11 @@
 
 using namespace std;
 using namespace bpp;
+
+struct nniIDs {
+    int rearr1;
+    int rearr2;
+};
 
 class Alignment {
     public :
@@ -43,6 +49,7 @@ class Alignment {
         void set_rates(const vector<double>&, string order="acgt");
         void set_frequencies(vector<double>);
         void set_namespace(string name);
+        void set_parameter(string name, double value);
         vector<pair<string, string>> get_sequences();
         double get_alpha();
         size_t get_number_of_gamma_categories();
@@ -52,12 +59,16 @@ class Alignment {
         vector<double> get_empirical_frequencies(double pseudocount);
         vector<double> get_empirical_frequencies();
         vector<string> get_names();
+        double get_parameter(string name);
+        vector<string> get_parameter_names();
         size_t get_number_of_sequences();
         vector<string> get_sites();
         size_t get_number_of_sites();
         size_t get_number_of_free_parameters();
         string get_substitution_model();
         vector<vector<double>> get_exchangeabilities();
+        vector<vector<double>> get_q_matrix();
+        vector<vector<double>> get_p_matrix(double time);
         string get_namespace();
         vector<string> get_informative_sites(bool exclude_gaps);
         size_t get_number_of_informative_sites(bool exclude_gaps);
@@ -65,6 +76,10 @@ class Alignment {
         bool is_dna();
         bool is_protein();
         void _print_params();
+        double test_nni(int nodeid);
+        void do_nni(int nodeid);
+        void commit_topology();
+        void _print_node(int nodeid);
 
         // Distance
         void compute_distances();
@@ -80,10 +95,18 @@ class Alignment {
         // Likelihood
         void initialise_likelihood();
         void initialise_likelihood(string tree);
+        void optimise_branch_lengths();
         void optimise_parameters(bool fix_branch_lengths);
         void optimise_topology(bool fix_model_params);
         double get_likelihood();
         string get_tree();
+        string get_abayes_tree();
+
+        // Parsimony
+        void initialise_parsimony(string tree, bool verbose=true, bool include_gaps=true);
+        unsigned int get_parsimony_score();
+        string get_parsimony_tree();
+        void optimise_parsimony(unsigned int verbose=1);
 
         // Simulator
         void write_simulation(size_t nsites, string filename, string file_format, bool interleaved=true);
@@ -115,12 +138,14 @@ class Alignment {
         shared_ptr<DistanceMatrix> _create_distance_matrix(vector<vector<double>> matrix);
         shared_ptr<VectorSiteContainer> sequences;
         shared_ptr<VectorSiteContainer> simulated_sequences;
-        shared_ptr<SubstitutionModel> model;
+        shared_ptr<AbstractSubstitutionModel> model;
         shared_ptr<AbstractDiscreteDistribution> rates;
         shared_ptr<DistanceMatrix> distances;
         shared_ptr<DistanceMatrix> variances;
         shared_ptr<NNIHomogeneousTreeLikelihood> likelihood;
         shared_ptr<HomogeneousSequenceSimulator> simulator;
+        shared_ptr<DRTreeParsimonyScore> parsimony;
+        unique_ptr<ParameterList> _get_parameter_list();
         string _name;
         string _computeTree(DistanceMatrix dists, DistanceMatrix vars) throw (Exception);
 };
