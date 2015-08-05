@@ -16,7 +16,7 @@ def is_clang(bin):
     output = '\n'.join([stdout, stderr])
     return not re.search(r'clang', output) is None
 
-class my_build_ext( build_ext ):
+class my_build_ext(build_ext):
     def build_extensions(self):
         binary = self.compiler.compiler[0]
         if is_clang(binary):
@@ -48,11 +48,9 @@ setup(cmdclass={'build_ext':my_build_ext},
       author_email='kgori@ebi.ac.uk',
       description='Pairwise distances by maximum likelihood',
       url='https://github.com/kgori/bpp.git',
-      version="0.0.13",
+      version="0.0.14",
       scripts=['bin/pairdist', 'bin/simulate'],
       ext_modules = [ext],
-      install_requires=[
-        'autowrap',
-        'cython',
-      ],
+      install_requires = ['autowrap',
+                          'cython'],
      )

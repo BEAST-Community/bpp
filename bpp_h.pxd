@@ -75,6 +75,12 @@ cdef extern from "src/Alignment.h":
         libcpp_string get_tree() except +
         libcpp_string get_abayes_tree() except +
 
+        # Parsimony
+        void initialise_parsimony(libcpp_string tree, bool verbose, bool include_gaps) except +
+        int get_parsimony_score() except +
+        libcpp_string get_parsimony_tree() except +
+        void optimise_parsimony(unsigned int verbose) except +
+
         # Simulator
         void write_simulation(size_t nsites, libcpp_string filename, libcpp_string file_format, bool interleaved) except +
         void set_simulator(libcpp_string tree) except +

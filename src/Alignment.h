@@ -14,6 +14,7 @@
 #include <Bpp/Seq/DistanceMatrix.h>
 #include <Bpp/Phyl/Likelihood/NNIHomogeneousTreeLikelihood.h>
 #include <Bpp/Phyl/Simulation/HomogeneousSequenceSimulator.h>
+#include <Bpp/Phyl/Parsimony/DRTreeParsimonyScore.h>
 
 #include <iostream>
 #include <map>
@@ -79,6 +80,7 @@ class Alignment {
         void do_nni(int nodeid);
         void commit_topology();
         void _print_node(int nodeid);
+
         // Distance
         void compute_distances();
         void fast_compute_distances();
@@ -99,6 +101,12 @@ class Alignment {
         double get_likelihood();
         string get_tree();
         string get_abayes_tree();
+
+        // Parsimony
+        void initialise_parsimony(string tree, bool verbose=true, bool include_gaps=true);
+        unsigned int get_parsimony_score();
+        string get_parsimony_tree();
+        void optimise_parsimony(unsigned int verbose=1);
 
         // Simulator
         void write_simulation(size_t nsites, string filename, string file_format, bool interleaved=true);
@@ -136,6 +144,7 @@ class Alignment {
         shared_ptr<DistanceMatrix> variances;
         shared_ptr<NNIHomogeneousTreeLikelihood> likelihood;
         shared_ptr<HomogeneousSequenceSimulator> simulator;
+        shared_ptr<DRTreeParsimonyScore> parsimony;
         unique_ptr<ParameterList> _get_parameter_list();
         string _name;
         string _computeTree(DistanceMatrix dists, DistanceMatrix vars) throw (Exception);

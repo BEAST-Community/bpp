@@ -128,22 +128,59 @@ cdef class Alignment:
         assert isinstance(filename, bytes), 'arg filename wrong type'
         assert isinstance(file_format, bytes), 'arg file_format wrong type'
         assert isinstance(interleaved, (int, long)), 'arg interleaved wrong type'
-
-
-
-
-        self.inst.get().read_alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<bool>interleaved))
+        self.inst.get().read_alignment((<libcpp_string>filename),
+                                       (<libcpp_string>file_format),
+                                       (<bool>interleaved))
 
     def read_alignment(self, bytes filename , bytes file_format , bytes datatype ,  interleaved ):
         assert isinstance(filename, bytes), 'arg filename wrong type'
         assert isinstance(file_format, bytes), 'arg file_format wrong type'
         assert isinstance(datatype, bytes), 'arg datatype wrong type'
         assert isinstance(interleaved, (int, long)), 'arg interleaved wrong type'
+        self.inst.get().read_alignment((<libcpp_string>filename),
+                                       (<libcpp_string>file_format),
+                                       (<libcpp_string>datatype),
+                                       (<bool>interleaved))
 
 
+    def initialise_parsimony(self, bytes tree, verbose, include_gaps):
+        """
+        Create the parsimony model
+        """
+        assert isinstance(tree, bytes), 'arg tree wrong type'
+        assert isinstance(verbose, (int, long)), 'arg verbose wrong type (expected a bool)'
+        assert isinstance(include_gaps, (int, long)), 'arg include_gaps wrong type (expected a bool)'
+        self.inst.get().initialise_parsimony((<libcpp_string>tree),
+                                             (<bool>verbose),
+                                             (<bool>include_gaps))
 
 
-        self.inst.get().read_alignment((<libcpp_string>filename), (<libcpp_string>file_format), (<libcpp_string>datatype), (<bool>interleaved))
+    def get_parsimony_score(self):
+        """
+        Get the parsimony score of the current parsimony tree
+        (note: the parsimony tree and the likelihood tree, if one
+        exists, are independent objects)
+        """
+        cdef unsigned int _r = self.inst.get().get_parsimony_score()
+        py_result = <int>_r
+        return py_result
+
+
+    def get_parsimony_tree(self):
+        """
+        Get the newick representation of the current parsimony tree
+        (note: the parsimony tree and the likelihood tree, if one
+        exists, are independent objects)
+        """
+        cdef libcpp_string _r = self.inst.get().get_parsimony_tree()
+        py_result = <libcpp_string>_r
+        return py_result
+
+    
+    def optimise_parsimony(self, verbose):
+        assert isinstance(verbose, (int, long)), 'arg verbose wrong type (expected uint)'
+        self.inst.get().optimise_parsimony((<unsigned int>verbose))
+
 
     def test_nni(self, int nodeid):
         assert isinstance(nodeid, int), 'arg nodeid wrong type'

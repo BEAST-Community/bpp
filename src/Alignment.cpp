@@ -12,8 +12,6 @@
 #include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
 #include <Bpp/Phyl/BipartitionList.h>
-#include <Bpp/Phyl/Model/FrequenciesSet/NucleotideFrequenciesSet.h>
-#include <Bpp/Phyl/Model/FrequenciesSet/ProteinFrequenciesSet.h>
 #include <Bpp/Phyl/Distance/DistanceEstimation.h>
 #include <Bpp/Phyl/Distance/BioNJ.h>
 #include <Bpp/Phyl/Io/Newick.h>
@@ -23,6 +21,7 @@
 #include <Bpp/Phyl/TopologySearch.h>
 #include <Bpp/Phyl/Node.h>
 #include <Bpp/Phyl/TreeTools.h>
+#include <Bpp/Phyl/TreeTemplateTools.h>
 #include <Bpp/Phyl/TreeExceptions.h>
 #include <Bpp/Seq/Alphabet/AlphabetTools.h>
 #include <Bpp/Seq/Container/CompressedVectorSiteContainer.h>
@@ -89,6 +88,11 @@ void ensure_minval_and_sum(std::vector<double>& v, double minval) {
     }
 }
 
+// Delete whitespace at end of string
+void strip(std::string& s) {
+    s.erase(s.find_last_not_of(" \n\r\t")+1);
+}
+
 Alignment::Alignment() {}
 
 Alignment::Alignment(vector<Alignment>& alignments) {
@@ -106,14 +110,23 @@ Alignment::Alignment(vector<pair<string, string>>& headers_sequences, string dat
 }
 
 Alignment::Alignment(string filename, string file_format, bool interleaved) {
+    strip(filename);  // Delete whitespace at end of string
+    strip(file_format);
     read_alignment(filename, file_format, interleaved);
 }
 
 Alignment::Alignment(string filename, string file_format, string datatype, bool interleaved) {
+    strip(filename);
+    strip(file_format);
+    strip(datatype);
     read_alignment(filename, file_format, datatype, interleaved);
 }
 
 Alignment::Alignment(string filename, string file_format, string datatype, string model_name, bool interleaved) {
+    strip(filename);
+    strip(file_format);
+    strip(datatype);
+    strip(model_name);
     read_alignment(filename, file_format, datatype, interleaved);
     set_gamma_rate_model();
     try {
@@ -126,12 +139,17 @@ Alignment::Alignment(string filename, string file_format, string datatype, strin
 }
 
 void Alignment::read_alignment(string filename, string file_format, bool interleaved) {
+    strip(filename);
+    strip(file_format);
     sequences = SiteContainerBuilder::read_alignment(filename, file_format, interleaved);
     _clear_distances();
     _clear_likelihood();
 }
 
 void Alignment::read_alignment(string filename, string file_format, string datatype, bool interleaved) {
+    strip(filename);
+    strip(file_format);
+    strip(datatype);
     sequences = SiteContainerBuilder::read_alignment(filename, file_format, datatype, interleaved);
     _clear_distances();
     _clear_likelihood();
@@ -143,6 +161,8 @@ void Alignment::sort_alignment(bool ascending) {
 }
 
 void Alignment::write_alignment(string filename, string file_format, bool interleaved) {
+    strip(filename);
+    strip(file_format);
     if (file_format == "fas" || file_format == "fasta") {
         _write_fasta(sequences, filename);
     }
@@ -156,6 +176,7 @@ void Alignment::write_alignment(string filename, string file_format, bool interl
 }
 
 void Alignment::set_substitution_model(string model_name) {
+    strip(model_name);
     if (sequences) _check_compatible_model(model_name);
     model = ModelFactory::create(model_name);
     _clear_likelihood();
@@ -770,6 +791,7 @@ void Alignment::initialise_likelihood() {
 }
 
 void Alignment::initialise_likelihood(string tree) {
+    strip(tree);
     if (!model) {
         cerr << "Model not set" << endl;
         throw Exception("Model not set error");
@@ -857,10 +879,55 @@ string Alignment::get_tree() {
     return s;
 }
 
+// Parsimony
+void Alignment::initialise_parsimony(string tree, bool verbose, bool include_gaps) {
+    if (!sequences) {
+        cerr << "No sequences" << endl;
+        throw Exception("This instance has no sequences");
+    }
+    unique_ptr<Tree> liktree;
+    auto reader = make_shared<Newick>(false);
+    if (_is_file(tree)) {
+        liktree = unique_ptr<Tree>(reader->read(tree));
+    }
+    else if (_is_tree_string(tree)) {
+        stringstream ss{tree};
+        liktree = unique_ptr<Tree>(reader->read(ss));
+    }
+    else {
+        cerr << "Couldn\'t understand this tree: " << tree << endl;
+        throw Exception("Tree error");
+    }
+    strip(tree);
+    auto sites_ = make_unique<CompressedVectorSiteContainer>(*sequences);
+    SiteContainerTools::changeGapsToUnknownCharacters(*sites_);
+    parsimony = make_shared<DRTreeParsimonyScore>(*liktree, *sites_, verbose, include_gaps);
+}
+
+unsigned int Alignment::get_parsimony_score() {
+    if (!parsimony) {
+        throw Exception("No parsimony model has been initialised");
+    }
+    return parsimony->getScore();
+}
+
+string Alignment::get_parsimony_tree() {
+    if (!parsimony) {
+        throw Exception("Parsimony calculator not set - call initialise_parsimony");
+    }
+    string s = TreeTools::treeToParenthesis(parsimony->getTree());
+    s.erase(s.find_last_not_of(" \n\r\t")+1);
+    return s;
+}
+
+void Alignment::optimise_parsimony(unsigned int verbose) {
+    parsimony = make_shared<DRTreeParsimonyScore>(*OptimizationTools::optimizeTreeNNI(parsimony.get(), verbose));
+}
+
 // Simulator
 void Alignment::write_simulation(size_t nsites, string filename, string file_format, bool interleaved) {
     simulate(nsites);
-
+    
     if (file_format == "fas" || file_format == "fasta") {
         _write_fasta(simulated_sequences, filename);
     }
