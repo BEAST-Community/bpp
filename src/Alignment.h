@@ -46,7 +46,7 @@ class Alignment {
         void set_constant_rate_model();
         void set_alpha(double alpha);
         void set_number_of_gamma_categories(size_t ncat);
-        void set_rates(const vector<double>&, string order="acgt");
+        void set_rates(vector<double>&, string order="acgt");
         void set_frequencies(vector<double>);
         void set_namespace(string name);
         void set_parameter(string name, double value);

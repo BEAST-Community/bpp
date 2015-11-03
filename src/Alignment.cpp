@@ -210,10 +210,15 @@ void Alignment::set_number_of_gamma_categories(size_t ncat) {
     _clear_likelihood();
 }
 
-void Alignment::set_rates(const vector<double>& rates, string order) {
+void Alignment::set_rates(vector<double>& rates, string order) {
     if (!model) throw Exception("Model not set");
     bool isDna = model->getAlphabet()->getAlphabetType() == "DNA alphabet";
     if (!isDna || model->getName() != "GTR") throw Exception("Setting rates is only implemented for DNA GTR model.");
+    for (size_t i = 0; i < rates.size(); ++i) {
+        if (rates[i] < DISTMIN) {
+            rates[i] = DISTMIN;
+        }
+    }
     if (isDna) {
         double a, b, c, d, e, theta, theta1, theta2, piA, piC, piG, piT;
         if (order == "acgt" || order == "ACGT") {
